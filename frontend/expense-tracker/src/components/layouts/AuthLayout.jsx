@@ -8,7 +8,7 @@ const AuthLayout = ({ children }) => {
       {/* Left side: Login form */}
       <div className="w-full md:w-1/2 px-8 md:px-12 pt-8 pb-12 bg-white">
         <h2 className="text-xl font-semibold text-black mb-6">
-          Expense Tracker
+          AutoCA
         </h2>
         {children}
       </div>
