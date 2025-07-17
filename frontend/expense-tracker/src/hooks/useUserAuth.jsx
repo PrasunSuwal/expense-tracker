@@ -9,7 +9,9 @@ export const useUserAuth = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) return;
+    // Only run if token exists and user is not already set
+    const token = localStorage.getItem("token");
+    if (!token || user) return;
 
     let isMounted = true;
     const fetchUserInfo = async () => {
@@ -31,5 +33,5 @@ export const useUserAuth = () => {
     return () => {
       isMounted = false;
     };
-  }, [updateUser, clearUser, navigate]);
+  }, [updateUser, clearUser, navigate, user]);
 };

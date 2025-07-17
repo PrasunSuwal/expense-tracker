@@ -28,7 +28,7 @@ const RecentIncomeWithChart = ({ data, totalIncome }) => {
       <CustomPieChart
         data={charData}
         label="Total Income"
-        totalAmount={`$${totalIncome}`}
+        totalAmount={`Rs${totalIncome}`}
         showTextAnchor
         colors={COLORS}
       />

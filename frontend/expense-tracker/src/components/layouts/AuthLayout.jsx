@@ -1,15 +1,22 @@
 import React from "react";
 import CARD from "../../assets/images/card.png";
 import { LuTrendingUpDown } from "react-icons/lu";
+import logo from "../../assets/images/logo.png";
+import { useNavigate } from "react-router-dom";
 
 const AuthLayout = ({ children }) => {
+  const navigate = useNavigate();
   return (
     <div className="flex h-screen">
       {/* Left side: Login form */}
       <div className="w-full md:w-1/2 px-8 md:px-12 pt-8 pb-12 bg-white">
-        <h2 className="text-xl font-semibold text-black mb-6">
-          AutoCA
-        </h2>
+        <div
+          className="flex items-center mb-6 cursor-pointer"
+          onClick={() => navigate("/")}
+        >
+          <img src={logo} alt="Logo" className="rounded-full w-20 h-20 mr-3" />
+          <h2 className="text-2xl font-bold text-purple-700">AutoCA</h2>
+        </div>
         {children}
       </div>
 
@@ -52,7 +59,7 @@ const StatsInfoCard = ({ icon, label, value, color }) => {
       </div>
       <div>
         <h6 className="text-xs text-gray-500 mb-1">{label}</h6>
-        <span className="text-[20px] font-semibold">${value}</span>
+        <span className="text-[20px] font-semibold">Rs {value}</span>
       </div>
     </div>
   );

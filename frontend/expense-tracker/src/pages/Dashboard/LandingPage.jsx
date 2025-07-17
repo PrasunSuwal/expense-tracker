@@ -13,13 +13,17 @@ import bills from "../../assets/images/bills.png";
 import shikshya from "../../assets/images/shikshya.png";
 import rabi from "../../assets/images/rabi.png";
 import shreya from "../../assets/images/shreya.png";
+import { useContext } from "react";
+import { UserContext } from "../../context/UserContext";
 
 const LandingPage = () => {
   const navigate = useNavigate();
 
-  const handleGetStarted = () => navigate("/login");
-  const handleSignIn = () => navigate("/login");
+  const handleGetStarted = () => navigate("/signup");
+  const handleLogIn = () => navigate("/login");
   const handleSignUp = () => navigate("/signup");
+  const { user } = useContext(UserContext);
+  const profileImageUrl = user?.profileImageUrl;
   const isAuthenticated = !!localStorage.getItem("token");
 
   return (
@@ -31,32 +35,44 @@ const LandingPage = () => {
           <h2 className="text-2xl font-bold text-purple-700">AutoCA</h2>
         </div>
         <nav>
-          <ul className="flex gap-6 text-base font-medium">
+          <ul className="flex gap-6 text-base font-semibold tracking-wide uppercase">
             <li>
-              <a href="#home" className="hover:text-purple-600 transition">
+              <a
+                href="#home"
+                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+              >
                 Home
               </a>
             </li>
             <li>
-              <a href="#features" className="hover:text-purple-600 transition">
+              <a
+                href="#features"
+                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+              >
                 Features
               </a>
             </li>
             <li>
-              <a href="#about" className="hover:text-purple-600 transition">
+              <a
+                href="#about"
+                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+              >
                 About Us
               </a>
             </li>
             <li>
               <a
                 href="#testimonials-section"
-                className="hover:text-purple-600 transition"
+                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
               >
                 Review
               </a>
             </li>
             <li>
-              <a href="#contact" className="hover:text-purple-600 transition">
+              <a
+                href="#contact"
+                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+              >
                 Contact
               </a>
             </li>
@@ -64,20 +80,29 @@ const LandingPage = () => {
         </nav>
         <div className="flex gap-2">
           {isAuthenticated ? (
-            <button
-              className="bg-purple-700 text-white px-6 py-2 rounded-xl font-semibold text-lg flex items-center gap-2 hover:bg-purple-800 transition"
-              onClick={() => navigate("/dashboard")}
-            >
-              Dashboard
-              <span className="ml-1">→</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                className="bg-purple-700 text-white px-6 py-2 rounded-xl font-semibold text-lg flex items-center gap-2 hover:bg-purple-800 transition"
+                onClick={() => navigate("/dashboard")}
+              >
+                Dashboard
+                <span className="ml-1">→</span>
+              </button>
+              {profileImageUrl && (
+                <img
+                  src={profileImageUrl}
+                  alt="Profile"
+                  className="w-10 h-10 rounded-full ml-2"
+                />
+              )}
+            </div>
           ) : (
             <>
               <button
                 className="bg-purple-700 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-purple-800 transition"
-                onClick={handleSignIn}
+                onClick={handleLogIn}
               >
-                Sign In
+                Log In
               </button>
               <button
                 className="bg-purple-700 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-purple-800 transition"
@@ -305,7 +330,10 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-purple-900 text-purple-100 py-10 px-6 mt-10">
+      <footer
+        id="contact"
+        className="bg-purple-900 text-purple-100 py-10 px-6 mt-10"
+      >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="mb-6 md:mb-0">
             <h3 className="text-4xl font-bold mb-2">AutoCA</h3>

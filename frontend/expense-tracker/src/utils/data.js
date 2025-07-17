@@ -3,16 +3,9 @@ import {
   LuHandCoins,
   LuWalletMinimal,
   LuLogOut,
-  LuHome,
 } from "react-icons/lu";
 
 export const SIDE_MENU_DATA = [
-  {
-    id: "00",
-    label: "Home",
-    icon: LuHome,
-    path: "/",
-  },
   {
     id: "01",
     label: "Dashboard",
