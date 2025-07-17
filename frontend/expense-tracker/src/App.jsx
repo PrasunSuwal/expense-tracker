@@ -10,6 +10,7 @@ import SignUp from "./pages/Auth/SignUp";
 import Home from "./pages/Dashboard/Home";
 import Expense from "./pages/Dashboard/Expense";
 import Income from "./pages/Dashboard/Income";
+import LandingPage from "./pages/Dashboard/LandingPage";
 import UserProvider from "./context/UserContext";
 import { Toaster } from "react-hot-toast";
 
@@ -19,7 +20,7 @@ const App = () => {
       <div>
         <Router>
           <Routes>
-            <Route path="/" element={<Root />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" exact element={<Login />} />
             <Route path="/signUp" exact element={<SignUp />} />
             <Route path="/dashboard" exact element={<Home />} />
@@ -41,15 +42,3 @@ const App = () => {
 };
 
 export default App;
-
-const Root = () => {
-  //check if token exists in localstorage
-  const isAuthenticated = !!localStorage.getItem("token");
-
-  //Redirect to dashboard if authenticated, otherwise to login
-  return isAuthenticated ? (
-    <Navigate to="/dashboard" />
-  ) : (
-    <Navigate to="login" />
-  );
-};

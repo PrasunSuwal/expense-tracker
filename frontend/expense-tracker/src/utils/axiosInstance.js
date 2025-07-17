@@ -31,10 +31,10 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
-    //Handke common errors globally
+    //Handle common errors globally
     if (error.response) {
-      if (error.response.status === 401) {
-        //redirest to login page
+      if (error.response.status === 401 && window.location.pathname !== "/") {
+        //redirect to login page only if not on landing page
         window.location.href = "/login";
       } else if (error.response.status === 500) {
         console.error("Server error. Please try again later");
