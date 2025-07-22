@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/images/logo.png";
 import hero from "../../assets/images/hero.png";
@@ -18,6 +18,7 @@ import { UserContext } from "../../context/UserContext";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [activeMenu, setActiveMenu] = useState("home");
 
   const handleGetStarted = () => navigate("/signup");
   const handleLogIn = () => navigate("/login");
@@ -25,6 +26,10 @@ const LandingPage = () => {
   const { user } = useContext(UserContext);
   const profileImageUrl = user?.profileImageUrl;
   const isAuthenticated = !!localStorage.getItem("token");
+
+  const handleMenuClick = (menuItem) => {
+    setActiveMenu(menuItem);
+  };
 
   return (
     <div className="bg-white text-gray-900 font-sans">
@@ -39,7 +44,12 @@ const LandingPage = () => {
             <li>
               <a
                 href="#home"
-                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+                className={`relative px-3 py-1 rounded-lg transition-all duration-300 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900 ${
+                  activeMenu === "home"
+                    ? "bg-purple-200 text-purple-900 shadow-lg transform -translate-y-1"
+                    : "hover:-translate-y-1"
+                }`}
+                onClick={() => handleMenuClick("home")}
               >
                 Home
               </a>
@@ -47,7 +57,12 @@ const LandingPage = () => {
             <li>
               <a
                 href="#features"
-                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+                className={`relative px-3 py-1 rounded-lg transition-all duration-300 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900 ${
+                  activeMenu === "features"
+                    ? "bg-purple-200 text-purple-900 shadow-lg transform -translate-y-1"
+                    : "hover:-translate-y-1"
+                }`}
+                onClick={() => handleMenuClick("features")}
               >
                 Features
               </a>
@@ -55,7 +70,12 @@ const LandingPage = () => {
             <li>
               <a
                 href="#about"
-                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+                className={`relative px-3 py-1 rounded-lg transition-all duration-300 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900 ${
+                  activeMenu === "about"
+                    ? "bg-purple-200 text-purple-900 shadow-lg transform -translate-y-1"
+                    : "hover:-translate-y-1"
+                }`}
+                onClick={() => handleMenuClick("about")}
               >
                 About Us
               </a>
@@ -63,7 +83,12 @@ const LandingPage = () => {
             <li>
               <a
                 href="#testimonials-section"
-                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+                className={`relative px-3 py-1 rounded-lg transition-all duration-300 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900 ${
+                  activeMenu === "review"
+                    ? "bg-purple-200 text-purple-900 shadow-lg transform -translate-y-1"
+                    : "hover:-translate-y-1"
+                }`}
+                onClick={() => handleMenuClick("review")}
               >
                 Review
               </a>
@@ -71,7 +96,12 @@ const LandingPage = () => {
             <li>
               <a
                 href="#contact"
-                className="relative px-3 py-1 rounded-lg transition-all duration-200 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900"
+                className={`relative px-3 py-1 rounded-lg transition-all duration-300 hover:bg-purple-100 hover:text-purple-700 hover:shadow-md focus:bg-purple-200 focus:text-purple-900 ${
+                  activeMenu === "contact"
+                    ? "bg-purple-200 text-purple-900 shadow-lg transform -translate-y-1"
+                    : "hover:-translate-y-1"
+                }`}
+                onClick={() => handleMenuClick("contact")}
               >
                 Contact
               </a>
