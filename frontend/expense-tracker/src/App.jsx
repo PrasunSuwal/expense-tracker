@@ -8,7 +8,7 @@ import Income from "./pages/Dashboard/Income";
 import LandingPage from "./pages/Dashboard/LandingPage";
 import UserProvider from "./context/UserContext";
 import { Toaster } from "react-hot-toast";
-import { useUserAuth } from "./hooks/useUserAuth";
+// import { useUserAuth } from "./hooks/useUserAuth";
 import ScrollToTop from "./components/Scroll/ScrollToTop";
 
 const App = () => {
@@ -23,7 +23,7 @@ const App = () => {
 };
 
 const AppContent = () => {
-  useUserAuth();
+  // ...existing code...
   return (
     <>
       <Routes>
