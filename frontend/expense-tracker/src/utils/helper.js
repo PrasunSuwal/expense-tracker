@@ -41,7 +41,7 @@ export const prepareIncomeBarChartData = (data = []) => {
     (a, b) => new Date(a.date) - new Date(b.date)
   );
   const charData = sortData.map((item) => ({
-    month: moment(item?.date).format("DP MMM"),
+    month: moment(item?.date).format("DD MMM"),
     amount: item?.amount,
     source: item?.source,
   }));
@@ -53,7 +53,7 @@ export const prepareExpenseLineChartData = (data = []) => {
     (a, b) => new Date(a.date) - new Date(b.date)
   );
   const charData = sortedData.map((item) => ({
-    month: moment(item?.date).format("DP MMM"),
+    month: moment(item?.date).format("DD MMM"),
     amount: item?.amount,
     category: item?.category,
   }));

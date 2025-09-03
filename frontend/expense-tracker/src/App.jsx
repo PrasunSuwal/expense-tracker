@@ -10,6 +10,7 @@ import UserProvider from "./context/UserContext";
 import { Toaster } from "react-hot-toast";
 // import { useUserAuth } from "./hooks/useUserAuth";
 import ScrollToTop from "./components/Scroll/ScrollToTop";
+import Analysis from "./pages/Dashboard/Analysis";
 
 const App = () => {
   return (
@@ -33,6 +34,7 @@ const AppContent = () => {
         <Route path="/dashboard" exact element={<Home />} />
         <Route path="/income" exact element={<Income />} />
         <Route path="/expense" exact element={<Expense />} />
+        <Route path="/analysis" exact element={<Analysis />} />
       </Routes>
       <Toaster
         toastOptions={{
