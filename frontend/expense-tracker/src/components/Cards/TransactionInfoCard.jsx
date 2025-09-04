@@ -28,7 +28,7 @@ const TransactionInfoCard = ({
             <span className="text-2xl">{icon}</span>
           )
         ) : (
-          <LuUtensils />
+          <span className="text-2xl">{type === "income" ? "💵" : "💸"}</span>
         )}
       </div>
       <div className="flex-1 flex items-center justify-between">

@@ -90,17 +90,8 @@ exports.uploadAndCategorizeIncomeBill = async (req, res) => {
         }
       }
     }
-    // Extract date (first occurrence of date-like pattern)
-    let date = new Date();
-    const dateMatch = extractedText.match(
-      /(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4}|\d{4}-\d{2}-\d{2})/
-    );
-    if (dateMatch && dateMatch[1]) {
-      const parsedDate = new Date(dateMatch[1]);
-      if (!isNaN(parsedDate.getTime())) {
-        date = parsedDate;
-      }
-    }
+    // Always use current date for bill upload
+    const date = new Date();
     // Only analyze and return extracted data, do not save income
     // Backward-compatible shape with top-level fields
     res.status(200).json({
