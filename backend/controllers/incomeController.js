@@ -1,6 +1,6 @@
-const Tesseract = require("tesseract.js");
-const pdfParse = require("pdf-parse");
 const fs = require("fs");
+const axios = require("axios");
+const FormData = require("form-data");
 
 // Helper: Detect income category from text
 const detectIncomeCategory = (text) => {
@@ -23,7 +23,7 @@ const detectIncomeCategory = (text) => {
   return "other";
 };
 
-// Upload and categorize income bill
+// Upload and categorize income bill (via FastAPI OCR service)
 exports.uploadAndCategorizeIncomeBill = async (req, res) => {
   const userId = req.user.id;
   try {
@@ -34,18 +34,21 @@ exports.uploadAndCategorizeIncomeBill = async (req, res) => {
     const billUrl = `${req.protocol}://${req.get("host")}/uploads/${
       req.file.filename
     }`;
-    let extractedText = "";
-    if (req.file.mimetype === "application/pdf") {
-      const dataBuffer = fs.readFileSync(billPath);
-      const pdfData = await pdfParse(dataBuffer);
-      extractedText = pdfData.text;
-    } else if (req.file.mimetype.startsWith("image/")) {
-      const result = await Tesseract.recognize(billPath, "eng");
-      extractedText = result.data.text;
-    } else {
-      return res.status(400).json({ message: "Unsupported file type" });
-    }
-    const category = detectIncomeCategory(extractedText);
+    // Forward file to OCR microservice
+    const buffer = fs.readFileSync(billPath);
+    const form = new FormData();
+    form.append("file", buffer, { filename: req.file.originalname || req.file.filename });
+
+    const OCR_API = process.env.OCR_API_URL || "http://localhost:8000";
+    const ocrResponse = await axios.post(`${OCR_API}/process`, form, {
+      headers: form.getHeaders(),
+      maxBodyLength: Infinity,
+    });
+
+    const extractedText = ocrResponse.data?.raw_text || "";
+    const detectedAmount = Number(ocrResponse.data?.amount) || 0;
+    const detectedCategory = (ocrResponse.data?.category || "other").toLowerCase();
+    const category = detectedCategory !== "miscellaneous" ? detectedCategory : detectIncomeCategory(extractedText);
     // Emoji mapping for income categories
     const categoryEmojis = {
       salary: "💰",
@@ -56,19 +59,28 @@ exports.uploadAndCategorizeIncomeBill = async (req, res) => {
       other: "💵",
     };
     const icon = categoryEmojis[category] || "💵";
-    // Extract amount (prefer 'Total' line, else first currency match)
-    let amount = 0;
-    let totalMatch = extractedText.match(
-      /Total\s*[:\-]?\s*(\$|Rs\.?|INR\.?|USD\.?|EUR\.?|GBP\.?|Amount:?\s?)?(\d+[.,]?\d*)/i
-    );
-    if (totalMatch && totalMatch[2]) {
-      amount = parseFloat(totalMatch[2].replace(/,/g, ""));
-    } else {
-      const amountMatch = extractedText.match(
-        /(?:\$|Rs\.?|INR\.?|USD\.?|EUR\.?|GBP\.?|Amount:?\s?)(\d+[.,]?\d*)/i
+    // Extract amount: trust OCR value first; fallback to stricter patterns if missing
+    let amount = detectedAmount;
+    if (!amount || Number.isNaN(amount)) {
+      const strongTotal = extractedText.match(
+        /(grand\s+total|amount\s+due|balance\s+due|total\s+due)\s*[:\-]?\s*(\$|Rs\.?|INR\.?|USD\.?|EUR\.?|GBP\.?\s*)?(\d+[.,]?\d*)/i
       );
-      if (amountMatch && amountMatch[1]) {
-        amount = parseFloat(amountMatch[1].replace(/,/g, ""));
+      if (strongTotal && strongTotal[3]) {
+        amount = parseFloat(strongTotal[3].replace(/,/g, ""));
+      } else {
+        const strictTotal = extractedText.match(
+          /\btotal\b\s*[:\-]?\s*(\$|Rs\.?|INR\.?|USD\.?|EUR\.?|GBP\.?\s*)?(\d+[.,]?\d*)/i
+        );
+        if (strictTotal && strictTotal[2]) {
+          amount = parseFloat(strictTotal[2].replace(/,/g, ""));
+        } else {
+          const generic = extractedText.match(
+            /(?:\$|Rs\.?|INR\.?|USD\.?|EUR\.?|GBP\.?|Amount:?\s?)(\d+[.,]?\d*)/i
+          );
+          if (generic && generic[1]) {
+            amount = parseFloat(generic[1].replace(/,/g, ""));
+          }
+        }
       }
     }
     // Extract date (first occurrence of date-like pattern)
@@ -83,8 +95,15 @@ exports.uploadAndCategorizeIncomeBill = async (req, res) => {
       }
     }
     // Only analyze and return extracted data, do not save income
+    // Backward-compatible shape with top-level fields
     res.status(200).json({
       message: "Income bill analyzed and categorized",
+      category,
+      amount,
+      date,
+      icon,
+      billUrl,
+      extractedText,
       income: {
         category,
         amount,
@@ -92,7 +111,6 @@ exports.uploadAndCategorizeIncomeBill = async (req, res) => {
         icon,
         billUrl,
       },
-      extractedText,
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });

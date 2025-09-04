@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BASE_URL } from "./apiPaths";
+import { BASE_URL, OCR_BASE_URL } from "./apiPaths";
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -47,3 +47,17 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+
+export const ocrAxios = axios.create({
+  baseURL: OCR_BASE_URL,
+  timeout: 15000,
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
+});
+
+ocrAxios.interceptors.response.use(
+  (response) => response,
+  (error) => Promise.reject(error)
+);

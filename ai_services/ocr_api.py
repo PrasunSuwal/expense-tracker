@@ -1,13 +1,19 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import pdfplumber, re, os, csv
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import pdfplumber, re, os, csv, io
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from PIL import Image
 import pytesseract
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # -----------------------------
 # Training Data for ML
@@ -40,6 +46,17 @@ category_keywords = {
                  "furniture", "table", "marble", "decor", "gift", "hardware", "locks", "electronics"],
     "Travel": ["hotel", "flight", "bus", "taxi", "airlines", "pathao", "uber", "tour", "booking", "stay", "ticket"],
     "Utilities": ["electricity", "water", "internet", "recharge", "gas", "dishhome", "ntc", "bill", "mobile"],
+    "Medical": ["medical", "hospital", "doctor", "medication", "medicine", "pharmacy", "pharmaceuticals", "health", "medical insurance"],
+    "Entertainment": ["movie", "cinema", "entertainment", "concert"],
+    "Other": ["other", "miscellaneous", "misc", "other expenses", "other income"],
+    "Salary": ["salary", "payroll", "income", "wages", "monthly pay"],
+    "Bonus": ["bonus", "incentive", "reward"],
+    "Investment": ["investment", "dividend", "interest", "stock", "mutual fund"],
+    "Freelance": ["freelance", "contract", "gig", "project"],
+    "Gift": ["gift", "present", "donation"],
+    "Financial": ["financial", "bank", "loan", "credit", "debit", "credit card", "debit card", "bank statement", "bank account"],
+    "Education": ["education", "school", "college", "university", "tuition", "fees", "scholarship", "study", "learning"],
+ 
 }
 
 # -----------------------------
@@ -63,21 +80,73 @@ def normalize_amount_str(amount_str):
         return None
 
 def extract_amount(text):
-    candidates = []
-    for line in text.splitlines():
-        if any(k in line.lower() for k in ["total", "gross worth", "amount due", "summary", "grand total"]):
-            matches = re.findall(r'[\$₹Rs\. ]?\s?[\d\s,.]+(?:[,.]\d{1,2})?', line)
-            for m in matches:
-                val = normalize_amount_str(m)
-                if val is not None:
-                    candidates.append(val)
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    lower_lines = [l.lower() for l in lines]
 
-    if candidates:
-        return max(candidates)
+    def nums_from_line(line):
+        matches = list(re.finditer(r'[\$₹rs\. ]?\s?[\d\s,.]+(?:[,.]\d{1,2})?', line, flags=re.IGNORECASE))
+        vals = []
+        for m in matches:
+            v = normalize_amount_str(m.group())
+            if v is not None:
+                vals.append((v, m.start(), m.end()))
+        return vals
 
-    all_numbers = re.findall(r'[\$₹Rs\. ]?\s?[\d\s,.]+(?:[,.]\d{1,2})?', text)
+    # 1) Strong signals for final payable total (exclude subtotal/discount/shipping)
+    strong_keywords = [
+        "grand total", "total due", "amount due", "balance due", "total payable", "amount payable"
+    ]
+    for i in range(len(lower_lines) - 1, -1, -1):
+        ll = lower_lines[i]
+        if any(k in ll for k in strong_keywords):
+            vals = nums_from_line(lines[i])
+            if vals:
+                # Prefer the last number on the line, or the number appearing after the keyword
+                # Determine the rightmost keyword position
+                kw_pos = max((ll.rfind(k) for k in strong_keywords if k in ll), default=-1)
+                after_kw = [v for v in vals if v[1] >= kw_pos]
+                chosen = after_kw[-1][0] if after_kw else vals[-1][0]
+                return chosen
+
+    # 2) Generic 'total' but not 'subtotal'/'discount'/'shipping' (scan bottom-up)
+    for i in range(len(lower_lines) - 1, -1, -1):
+        ll = lower_lines[i]
+        if "total" in ll and not any(bad in ll for bad in ["subtotal", "sub total", "discount", "shipping", "tax"]):
+            vals = nums_from_line(lines[i])
+            if vals:
+                kw_pos = ll.rfind("total")
+                after_kw = [v for v in vals if v[1] >= kw_pos]
+                chosen = after_kw[-1][0] if after_kw else vals[-1][0]
+                return chosen
+
+    # 3) Derive from subtotal - discount + shipping if available
+    def find_first(regex_list):
+        for i, ll in enumerate(lower_lines):
+            if any(rgx in ll for rgx in regex_list):
+                vals = nums_from_line(lines[i])
+                if vals:
+                    return max(vals)
+        return None
+
+    subtotal = find_first(["subtotal", "sub total"])
+    discount = find_first(["discount"])
+    shipping = find_first(["shipping", "delivery"])
+    if subtotal is not None:
+        computed = subtotal - (discount or 0) + (shipping or 0)
+        if computed > 0:
+            return round(computed, 2)
+
+    # 4) Fallback: choose the largest number near the bottom third of the doc
+    cut = max(0, int(len(lines) * 0.66))
+    bottom_text = "\n".join(lines[cut:])
+    all_numbers = re.findall(r'[\$₹rs\. ]?\s?[\d\s,.]+(?:[,.]\d{1,2})?', bottom_text, flags=re.IGNORECASE)
     numeric_vals = [normalize_amount_str(n) for n in all_numbers if normalize_amount_str(n) is not None]
+    if numeric_vals:
+        return max(numeric_vals)
 
+    # 5) Last resort: max anywhere
+    all_numbers = re.findall(r'[\$₹rs\. ]?\s?[\d\s,.]+(?:[,.]\d{1,2})?', text, flags=re.IGNORECASE)
+    numeric_vals = [normalize_amount_str(n) for n in all_numbers if normalize_amount_str(n) is not None]
     return max(numeric_vals) if numeric_vals else None
 
 # -----------------------------
@@ -116,26 +185,21 @@ if not os.path.exists(FEEDBACK_FILE):
 # -----------------------------
 # Process Invoice Endpoint
 # -----------------------------
-@app.route("/process", methods=["POST"])
-def process_invoice():
+@app.post("/process")
+async def process_invoice(file: UploadFile = File(...)):
     try:
-        file = request.files["file"]
-        text = extract_text_from_file(file)
-
-        print("=== Extracted Text ===")
-        print(text)
+        contents = await file.read()
+        text = extract_text_from_upload(file.filename, contents)
 
         amount = extract_amount(text)
         text_lower = text.lower()
 
-        # Step 1: Keyword Override
         category = None
         for cat, words in category_keywords.items():
             if any(w in text_lower for w in words):
                 category = cat
                 break
 
-        # Step 2: ML Fallback
         if not category:
             vec = vectorizer.transform([text])
             proba = model.predict_proba(vec)[0]
@@ -143,44 +207,57 @@ def process_invoice():
             best_confidence = proba[best_idx]
             best_category = model.classes_[best_idx]
 
-            if best_confidence >= 0.7:
-                category = best_category
-            else:
-                category = "Miscellaneous"
+            category = best_category if best_confidence >= 0.7 else "Miscellaneous"
 
-        return jsonify({
+        return {
             "raw_text": text,
             "amount": amount,
             "category": category
-        })
+        }
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 # -----------------------------
 # Feedback Endpoint
 # -----------------------------
-@app.route("/feedback", methods=["POST"])
-def feedback():
-    try:
-        data = request.get_json()
-        raw_text = data.get("raw_text")
-        correct_category = data.get("correct_category")
-        amount = data.get("amount")
+class FeedbackBody(BaseModel):
+    raw_text: str
+    correct_category: str
+    amount: float | None = None
 
-        if not raw_text or not correct_category:
-            return jsonify({"error": "Missing raw_text or correct_category"}), 400
+@app.post("/feedback")
+async def feedback(body: FeedbackBody):
+    try:
+        if not body.raw_text or not body.correct_category:
+            raise HTTPException(status_code=400, detail="Missing raw_text or correct_category")
 
         with open(FEEDBACK_FILE, mode="a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([raw_text, correct_category, amount])
+            writer.writerow([body.raw_text, body.correct_category, body.amount])
 
-        return jsonify({"message": "Feedback saved successfully"})
+        return {"message": "Feedback saved successfully"}
 
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-if __name__ == "__main__":
-    # Optional: configure tesseract path if not auto-detected
-    # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-    app.run(port=8000)
+# ---------------
+# Helpers (FastAPI upload)
+# ---------------
+def extract_text_from_upload(filename: str, contents: bytes) -> str:
+    name = filename.lower()
+    if name.endswith(".pdf"):
+        with pdfplumber.open(io.BytesIO(contents)) as pdf:
+            text = ""
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+            return text
+    elif name.endswith((".png", ".jpg", ".jpeg")):
+        image = Image.open(io.BytesIO(contents))
+        return pytesseract.image_to_string(image)
+    else:
+        raise ValueError("Unsupported file type. Please upload PDF or Image.")
