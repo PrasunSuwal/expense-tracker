@@ -20,7 +20,10 @@ export const getInitials = (name) => {
 export const addThousandsSeperator = (num) => {
   if (num == null || isNaN(num)) return "";
 
-  const [integerPart, fractionalPart] = num.toString().split(".");
+  // Round to 2 decimal places first
+  const roundedNum = parseFloat(Number(num).toFixed(2));
+
+  const [integerPart, fractionalPart] = roundedNum.toString().split(".");
   const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
   return fractionalPart

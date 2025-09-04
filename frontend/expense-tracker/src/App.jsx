@@ -5,6 +5,7 @@ import SignUp from "./pages/Auth/SignUp";
 import Home from "./pages/Dashboard/Home";
 import Expense from "./pages/Dashboard/Expense";
 import Income from "./pages/Dashboard/Income";
+import Profile from "./pages/Dashboard/Profile";
 import LandingPage from "./pages/Dashboard/LandingPage";
 import UserProvider from "./context/UserContext";
 import { Toaster } from "react-hot-toast";
@@ -35,6 +36,7 @@ const AppContent = () => {
         <Route path="/income" exact element={<Income />} />
         <Route path="/expense" exact element={<Expense />} />
         <Route path="/analysis" exact element={<Analysis />} />
+        <Route path="/profile" exact element={<Profile />} />
       </Routes>
       <Toaster
         toastOptions={{

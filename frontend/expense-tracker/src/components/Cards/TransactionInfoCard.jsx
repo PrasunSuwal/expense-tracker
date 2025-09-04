@@ -49,7 +49,8 @@ const TransactionInfoCard = ({
             className={`flex items-center gap-2 px-3 py-1.5 rounded-md ${getAmountStyles()}`}
           >
             <h6 className="text-xs font-medium">
-              {type === "income" ? "+" : "-"}Rs{amount}
+              {type === "income" ? "+" : "-"}Rs
+              {parseFloat(Number(amount).toFixed(2))}
             </h6>
             {type === "income" ? <LuTrendingUp /> : <LuTrendingDown />}
           </div>

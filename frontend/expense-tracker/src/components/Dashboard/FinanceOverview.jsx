@@ -5,9 +5,18 @@ const COLORS = ["#875CF5", "#FA2C37", "#FF6900"];
 
 const FinanceOverview = ({ totalBalance, totalIncome, totalExpense }) => {
   const balanceData = [
-    { name: "Total Balance", amount: totalBalance },
-    { name: "Total Expenses", amount: totalExpense },
-    { name: "Total Income", amount: totalIncome },
+    {
+      name: "Total Balance",
+      amount: parseFloat(Number(totalBalance).toFixed(2)),
+    },
+    {
+      name: "Total Expenses",
+      amount: parseFloat(Number(totalExpense).toFixed(2)),
+    },
+    {
+      name: "Total Income",
+      amount: parseFloat(Number(totalIncome).toFixed(2)),
+    },
   ];
 
   // console.log("balanceData", balanceData);
@@ -20,7 +29,7 @@ const FinanceOverview = ({ totalBalance, totalIncome, totalExpense }) => {
       <CustomPieChart
         data={balanceData}
         label="Total Balance"
-        totalAmount={`Rs${totalBalance}`}
+        totalAmount={`Rs${parseFloat(Number(totalBalance).toFixed(2))}`}
         colors={COLORS}
         showTextAnchor
       />

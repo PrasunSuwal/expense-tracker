@@ -43,7 +43,7 @@ exports.addExpense = async (req, res) => {
       userId,
       icon,
       category,
-      amount,
+      amount: parseFloat(Number(amount).toFixed(2)),
       date: new Date(date),
     });
 
@@ -133,18 +133,21 @@ exports.uploadAndCategorizeBill = async (req, res) => {
     const date = new Date();
 
     // Only analyze and return extracted data, do not save expense
+    // Round amount to 2 decimal places
+    const roundedAmount = amount ? parseFloat(Number(amount).toFixed(2)) : null;
+
     // Backward-compatible shape: top-level category/amount for UI auto-fill
     res.status(200).json({
       message: "Bill analyzed and categorized",
       category,
-      amount,
+      amount: roundedAmount,
       date,
       icon,
       billUrl,
       extractedText,
       expense: {
         category,
-        amount,
+        amount: roundedAmount,
         date,
         icon,
         billUrl,

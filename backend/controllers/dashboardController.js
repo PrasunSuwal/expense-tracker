@@ -71,16 +71,19 @@ exports.getDashboardData = async (req, res) => {
 
     //final response
     res.json({
-      totalBalance:
-        (totalIncome[0]?.total || 0) - (totalExpense[0]?.total || 0),
-      totalIncome: totalIncome[0]?.total || 0,
-      totalExpense: totalExpense[0]?.total || 0,
+      totalBalance: parseFloat(
+        ((totalIncome[0]?.total || 0) - (totalExpense[0]?.total || 0)).toFixed(
+          2
+        )
+      ),
+      totalIncome: parseFloat((totalIncome[0]?.total || 0).toFixed(2)),
+      totalExpense: parseFloat((totalExpense[0]?.total || 0).toFixed(2)),
       last30DaysExpenses: {
-        total: expenseLast30Days,
+        total: parseFloat(expenseLast30Days.toFixed(2)),
         transactions: last30DaysExpenseTransactions,
       },
       last60DaysIncome: {
-        total: incomeLast60Days,
+        total: parseFloat(incomeLast60Days.toFixed(2)),
         transactions: last60DaysIncomeTransactions,
       },
       recentTransactions: lastTransactions,
