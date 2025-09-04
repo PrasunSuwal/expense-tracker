@@ -37,9 +37,11 @@ exports.uploadAndCategorizeIncomeBill = async (req, res) => {
     // Forward file to OCR microservice
     const buffer = fs.readFileSync(billPath);
     const form = new FormData();
-    form.append("file", buffer, { filename: req.file.originalname || req.file.filename });
+    form.append("file", buffer, {
+      filename: req.file.originalname || req.file.filename,
+    });
 
-    const OCR_API = process.env.OCR_API_URL || "http://localhost:8000";
+    const OCR_API = process.env.OCR_API_URL || "http://localhost:8001";
     const ocrResponse = await axios.post(`${OCR_API}/process`, form, {
       headers: form.getHeaders(),
       maxBodyLength: Infinity,
@@ -47,8 +49,13 @@ exports.uploadAndCategorizeIncomeBill = async (req, res) => {
 
     const extractedText = ocrResponse.data?.raw_text || "";
     const detectedAmount = Number(ocrResponse.data?.amount) || 0;
-    const detectedCategory = (ocrResponse.data?.category || "other").toLowerCase();
-    const category = detectedCategory !== "miscellaneous" ? detectedCategory : detectIncomeCategory(extractedText);
+    const detectedCategory = (
+      ocrResponse.data?.category || "other"
+    ).toLowerCase();
+    const category =
+      detectedCategory !== "miscellaneous"
+        ? detectedCategory
+        : detectIncomeCategory(extractedText);
     // Emoji mapping for income categories
     const categoryEmojis = {
       salary: "💰",

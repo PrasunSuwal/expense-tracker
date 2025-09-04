@@ -59,9 +59,10 @@ const AddIncomeForm = ({ onAddIncome }) => {
       setIncome((prev) => ({
         ...prev,
         source: cat || prev.source,
-        amount: amt !== undefined && amt !== null && amt !== "" ? amt : prev.amount,
+        amount:
+          amt !== undefined && amt !== null && amt !== "" ? amt : prev.amount,
         date: dt ? String(dt).slice(0, 10) : prev.date,
-        icon: emojiMap[String(cat).toLowerCase()] || ic || prev.icon,
+        icon: emojiMap[String(cat).toLowerCase()] || ic || prev.icon || "💵",
       }));
     } catch (err) {
       setDetectedCategory("");
@@ -76,7 +77,8 @@ const AddIncomeForm = ({ onAddIncome }) => {
     try {
       await ocrAxios.post(API_PATHS.OCR.FEEDBACK, {
         raw_text: extractedText,
-        correct_category: feedbackCategory || detectedCategory || income.source || "",
+        correct_category:
+          feedbackCategory || detectedCategory || income.source || "",
         amount: feedbackAmount ? Number(feedbackAmount) : undefined,
       });
       setFeedbackNote("Thanks! Your feedback was saved.");
@@ -124,7 +126,9 @@ const AddIncomeForm = ({ onAddIncome }) => {
         style={{ padding: "8px 12px" }}
       />
       {uploading && (
-        <p className="text-xs text-gray-500 mt-2">Uploading and analyzing bill...</p>
+        <p className="text-xs text-gray-500 mt-2">
+          Uploading and analyzing bill...
+        </p>
       )}
       {detectedCategory && (
         <div className="mt-2 p-2 bg-slate-100 rounded">
