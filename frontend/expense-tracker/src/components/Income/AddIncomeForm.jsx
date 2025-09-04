@@ -11,7 +11,7 @@ const AddIncomeForm = ({ onAddIncome }) => {
     date: "",
     icon: "",
   });
-  const [billFile, setBillFile] = useState(null);
+  const [, setBillFile] = useState(null);
   const [detectedCategory, setDetectedCategory] = useState("");
   const [extractedText, setExtractedText] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -65,6 +65,7 @@ const AddIncomeForm = ({ onAddIncome }) => {
         icon: emojiMap[String(cat).toLowerCase()] || ic || prev.icon || "💵",
       }));
     } catch (err) {
+      console.error("Error uploading bill:", err);
       setDetectedCategory("");
       setExtractedText("");
     }
@@ -84,6 +85,7 @@ const AddIncomeForm = ({ onAddIncome }) => {
       setFeedbackNote("Thanks! Your feedback was saved.");
       setTimeout(() => setFeedbackNote(""), 2500);
     } catch (e) {
+      console.error("Error submitting feedback:", e);
       setFeedbackNote("Could not save feedback. Try again later.");
       setTimeout(() => setFeedbackNote(""), 2500);
     }
