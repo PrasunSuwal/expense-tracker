@@ -94,7 +94,7 @@ def extract_amount(text):
 
     # 1) Strong signals for final payable total (exclude subtotal/discount/shipping)
     strong_keywords = [
-        "grand total", "total due", "amount due", "balance due", "total payable", "amount payable"
+        "grand total", "total due", "amount due", "balance due", "total payable", "amount payable","amount"
     ]
     for i in range(len(lower_lines) - 1, -1, -1):
         ll = lower_lines[i]
