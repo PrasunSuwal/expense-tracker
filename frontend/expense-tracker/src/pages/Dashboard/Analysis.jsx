@@ -86,6 +86,7 @@ const Analysis = () => {
   useEffect(() => {
     fetchInsights();
   }, [fetchInsights]);
+  
 
   // Helpers for charts
   const buildForecastBars = (forecast) => {

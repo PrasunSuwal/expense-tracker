@@ -436,3 +436,4 @@ def api_forecast_post(userId: str, body: UserEstimates):
     except Exception as e:
         print(f"Error in api_forecast_post: {str(e)}")
         return {"error": f"An error occurred: {str(e)}"}
+    
