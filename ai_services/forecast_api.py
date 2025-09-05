@@ -5,6 +5,7 @@ from pymongo import MongoClient
 import pandas as pd
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import numpy as np
 from typing import Optional, Dict
 
@@ -24,24 +25,118 @@ app.add_middleware(
 # ----------------------
 # MongoDB connection
 # ----------------------
-client = MongoClient("mongodb+srv://dishantghimire10:NPUdOQJJGBPWgTHj@cluster0.wplbfhh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient(
+    "mongodb+srv://dishantghimire10:3hsQ2m4JAJlNKDO8@expensetracker.87kcsh4.mongodb.net/?retryWrites=true&w=majority&appName=expenseTracker"
+)
 db = client['test']
-collection = db['transactions']
 
 # ----------------------
 # Helper functions
 # ----------------------
-def fetch_data(months=6):
-    date_cutoff = datetime.now() - timedelta(days=30 * months)
-    cursor = collection.find({"date": {"$gte": date_cutoff.strftime("%Y-%m-%d")}})
-    return list(cursor)
+def fetch_data(user_id: str, months=6):
+    """
+    Fetch income and expense data from MongoDB and normalize fields.
+    Uses UTC to match MongoDB ISODate. Returns combined list of transactions.
+    """
+    try:
+        from bson import ObjectId
+        user_obj_id = ObjectId(user_id)
+    except Exception as e:
+        print(f"Error converting userId to ObjectId: {e}")
+        return []
+
+    date_cutoff = datetime.utcnow() - relativedelta(months=months)  # UTC
+    query = {
+        "userId": user_obj_id,  # Using ObjectId for userId
+        "date": {"$gte": date_cutoff}
+    }
+    print(f"Debug: Query = {query}")
+    print(f"Debug: Looking for user {user_id} with data after {date_cutoff}")
+
+    # Income
+    income_cursor = db['incomes'].find(query)
+    income_count = db['incomes'].count_documents(query)
+    print(f"Debug: Found {income_count} income records")
+    
+    income_data = []
+    for item in income_cursor:
+        try:
+            if "amount" in item and item["amount"] > 0:
+                # Convert string date to datetime if needed
+                date = item["date"]
+                if isinstance(date, str):
+                    date = datetime.strptime(date.split('.')[0], "%Y-%m-%dT%H:%M:%S")
+                
+                income_data.append({
+                    "date": date,
+                    "amount": float(item["amount"]),
+                    "type": "revenue",
+                    "category": item.get("source", "Other"),  # Use source field for income
+                    "userId": str(item["userId"]),  # Convert ObjectId to string
+                    "created": item.get("createdAt"),
+                    "updated": item.get("updatedAt")
+                })
+                print(f"Debug: Processing income: date={date}, amount={item['amount']}, source={item.get('source')}")
+        except Exception as e:
+            print(f"Error processing income record: {e}, Record: {item}")
+
+    # Expense
+    expense_cursor = db['expenses'].find(query)
+    expense_count = db['expenses'].count_documents(query)
+    print(f"Debug: Found {expense_count} expense records")
+    
+    expense_data = []
+    for item in expense_cursor:
+        try:
+            if "amount" in item and item["amount"] > 0:
+                # Convert string date to datetime if needed
+                date = item["date"]
+                if isinstance(date, str):
+                    try:
+                        date = datetime.strptime(date.split('.')[0], "%Y-%m-%dT%H:%M:%S")
+                    except ValueError:
+                        date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S.%f%z")
+                
+                expense_data.append({
+                    "date": date,
+                    "amount": float(item["amount"]),
+                    "type": "expense",
+                    "category": item.get("category", "Other"),
+                    "userId": str(item["userId"]),  # Convert ObjectId to string
+                    "created": item.get("createdAt"),
+                    "updated": item.get("updatedAt")
+                })
+                print(f"Debug: Processing expense: date={date}, amount={item['amount']}, category={item.get('category')}")
+        except Exception as e:
+            print(f"Error processing expense record: {e}, Record: {item}")
+
+    combined = income_data + expense_data
+    print(f"Fetched {len(combined)} total transactions (income: {len(income_data)}, expenses: {len(expense_data)})")
+    return combined
 
 def prepare_dataframe(data):
-    df = pd.DataFrame(data)
-    if df.empty:
+    if not data:
         return pd.DataFrame()
-    df['date'] = pd.to_datetime(df['date'])
-    df['amount'] = pd.to_numeric(df['amount'])
+    
+    df = pd.DataFrame(data)
+    print(f"Debug: DataFrame initial columns: {df.columns.tolist()}")
+    print(f"Debug: DataFrame initial shape: {df.shape}")
+    
+    # Convert date fields
+    for date_field in ['date', 'created', 'updated']:
+        if date_field in df.columns:
+            df[date_field] = pd.to_datetime(df[date_field], utc=True)
+    
+    # Ensure amount is numeric
+    df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
+    
+    # Drop rows with invalid amounts
+    df = df.dropna(subset=['amount'])
+    
+    print(f"Debug: Final DataFrame shape: {df.shape}")
+    print(f"Debug: Date range: {df['date'].min()} to {df['date'].max()}")
+    print(f"Debug: Total amount: {df['amount'].sum()}")
+    
     return df
 
 def forecast_weekly_expenses(df):
@@ -87,7 +182,7 @@ def generate_insights(df):
     warnings = []
     if df.empty:
         return insights, warnings
-    now = pd.Timestamp.now()
+    now = pd.Timestamp.now(tz='UTC')
     this_month = df[df['date'].dt.month == now.month]
     last_3_months = df[(df['date'] >= now - pd.DateOffset(months=3)) & (df['date'] < now)]
 
@@ -142,58 +237,202 @@ class UserEstimates(BaseModel):
     estimates: Dict[str, float] = Field(default_factory=dict)
 
 # ----------------------
-# API Endpoint
+# API Endpoints
 # ----------------------
+
+@app.get("/api/debug/data")
+async def debug_data(userId: str):
+    """Debug endpoint to check data processing."""
+    try:
+        data = fetch_data(user_id=userId, months=6)
+        df = prepare_dataframe(data)
+        
+        return {
+            "raw_data_count": len(data),
+            "dataframe_shape": df.shape,
+            "date_range": {
+                "start": df['date'].min().isoformat() if not df.empty else None,
+                "end": df['date'].max().isoformat() if not df.empty else None
+            },
+            "total_amount": float(df['amount'].sum()) if not df.empty else 0,
+            "sample_records": data[:2] if data else [],
+            "columns": df.columns.tolist() if not df.empty else []
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/api/debug/collections")
+async def debug_collections():
+    """Debug endpoint to check what's in the collections."""
+    try:
+        # Get sample users
+        sample_users = list(db['users'].find({}, {"_id": 1, "email": 1}).limit(5))
+        
+        # Get total counts
+        user_count = db['users'].count_documents({})
+        income_count = db['incomes'].count_documents({})
+        expense_count = db['expenses'].count_documents({})
+        
+        # Get sample income and expense records
+        sample_income = list(db['incomes'].find({}).limit(3))
+        sample_expenses = list(db['expenses'].find({}).limit(3))
+        
+        # Convert ObjectIds to strings for JSON serialization
+        import json
+        from bson import ObjectId
+        
+        class JSONEncoder(json.JSONEncoder):
+            def default(self, o):
+                if isinstance(o, ObjectId):
+                    return str(o)
+                return json.JSONEncoder.default(self, o)
+        
+        return {
+            "collections_count": {
+                "users": user_count,
+                "incomes": income_count,
+                "expenses": expense_count
+            },
+            "sample_users": [{"_id": str(u["_id"]), "email": u.get("email", "N/A")} for u in sample_users],
+            "sample_income": sample_income[:2],
+            "sample_expenses": sample_expenses[:2]
+        }
+    except Exception as e:
+        return {"error": str(e)}
 @app.api_route("/api/insights", methods=["GET", "POST"])
-async def api_insights(request: Request, body: Optional[UserEstimates] = None):
+async def api_insights(request: Request, body: Optional[UserEstimates] = None, userId: str = None):
+    if not userId:
+        return {"error": "userId is required"}
+        
+    print(f"Debug: Received userId = {userId}")
     user_estimates = body.estimates if body else {}
 
-    data = fetch_data()
-    df = prepare_dataframe(data)
+    try:
+        # Fetch and prepare data
+        data = fetch_data(user_id=userId, months=6)
+        df = prepare_dataframe(data)
+        
+        if df.empty:
+            print("Debug: No historical data found, using estimates")
+            return {
+                "forecasts": {
+                    "labels": [],
+                    "income": [user_estimates.get("income", 0)] * 4,
+                    "expenses": [user_estimates.get("expenses", 0)] * 4
+                },
+                "insights": ["No historical data available. Using provided estimates."],
+                "warnings": ["Forecasts are based on estimates only."]
+            }
+        
+        # Generate forecasts
+        expense_forecast, expense_labels = forecast_weekly_expenses(df)
+        cashflow_labels, cashflow_values = forecast_net_cashflow(df)
+        insights, warnings = generate_insights(df)
+        
+        return {
+            "forecasts": {
+                "labels": expense_labels,
+                "expenses": expense_forecast,
+                "cashflow": {
+                    "labels": cashflow_labels,
+                    "values": cashflow_values
+                }
+            },
+            "insights": insights,
+            "warnings": warnings
+        }
+    except Exception as e:
+        print(f"Error in api_insights: {str(e)}")
+        return {"error": f"An error occurred: {str(e)}"}
 
-    if df.empty:
-        weekly_labels = []
-        today = datetime.now()
-        for i in range(1, 5):
-            weekly_labels.append((today + timedelta(weeks=i)).strftime('%Y-%m-%d'))
+@app.get("/api/forecast/{userId}")
+def api_forecast_get(userId: str):
+    try:
+        # Fetch last 6 months of data
+        data = fetch_data(user_id=userId, months=6)
+        print(f"Debug: Fetched {len(data)} records for user {userId}")
+        
+        df = prepare_dataframe(data)
 
-        forecast_results = {}
-        revenue_sum = 0
-        expense_sum = 0
+        if df.empty:
+            return {
+                "forecast_chart_data": {"labels": [], "categories": {}},
+                "cashflow_chart_data": {"labels": [], "values": []},
+                "insights": ["No historical data found. Please add some transactions or provide estimates to generate forecasts."],
+                "warnings": ["Add your income and expense data to get personalized insights."]
+            }
 
-        for cat, amount in user_estimates.items():
-            if cat.lower() in ["salary", "freelance"]:
-                revenue_sum += amount
-            else:
-                expense_sum += amount
-                forecast_results[cat] = [round(amount / 4, 2)] * 4
-
-        weekly_revenue = revenue_sum / 4
-        weekly_expense = expense_sum / 4
-        cashflow_values = [round(weekly_revenue - weekly_expense, 2)] * 4
-
-        insights = [
-            "No historical data found. Using your input estimates for forecasting.",
-            f"Your total monthly income estimate is Rs {int(revenue_sum)}.",
-            f"Your total monthly expense estimate is Rs {int(expense_sum)}.",
-            "Forecasts will improve as you add real transaction data."
-        ]
+        forecast_data, forecast_labels = forecast_weekly_expenses(df)
+        cashflow_labels, cashflow_values = forecast_net_cashflow(df)
+        insights, warnings = generate_insights(df)
 
         return {
-            "forecast_chart_data": {"labels": weekly_labels, "categories": forecast_results},
-            "cashflow_chart_data": {"labels": weekly_labels, "values": cashflow_values},
+            "forecast_chart_data": {"labels": forecast_labels, "categories": forecast_data},
+            "cashflow_chart_data": {"labels": cashflow_labels, "values": cashflow_values},
             "insights": insights,
-            "warnings": []
+            "warnings": warnings
         }
+    except Exception as e:
+        print(f"Error in api_forecast_get: {str(e)}")
+        return {"error": f"An error occurred: {str(e)}"}
 
-    forecast_data, forecast_labels = forecast_weekly_expenses(df)
-    cashflow_labels, cashflow_values = forecast_net_cashflow(df)
-    insights, warnings = generate_insights(df)
+@app.post("/api/forecast/{userId}")
+def api_forecast_post(userId: str, body: UserEstimates):
+    try:
+        user_estimates = body.estimates
+        print(f"Debug: Received estimates for user {userId}: {user_estimates}")
+        
+        # Fetch last 6 months of data
+        data = fetch_data(user_id=userId, months=6)
+        print(f"Debug: Fetched {len(data)} records")
+        
+        df = prepare_dataframe(data)
 
-    return {
-        "forecast_chart_data": {"labels": forecast_labels, "categories": forecast_data},
-        "cashflow_chart_data": {"labels": cashflow_labels, "values": cashflow_values},
-        "insights": insights,
-        "warnings": warnings
-    }
+        if df.empty:
+            weekly_labels = []
+            today = datetime.now()
+            for i in range(1, 5):
+                weekly_labels.append((today + timedelta(weeks=i)).strftime('%Y-%m-%d'))
 
+            forecast_results = {}
+            revenue_sum = 0
+            expense_sum = 0
+
+            for cat, amount in user_estimates.items():
+                if cat.lower() in ["salary", "freelance"]:
+                    revenue_sum += amount
+                else:
+                    expense_sum += amount
+                    forecast_results[cat] = [round(amount / 4, 2)] * 4
+
+            weekly_revenue = revenue_sum / 4
+            weekly_expense = expense_sum / 4
+            cashflow_values = [round(weekly_revenue - weekly_expense, 2)] * 4
+
+            insights = [
+                "No historical data found. Using your input estimates for forecasting.",
+                f"Your total monthly income estimate is Rs {int(revenue_sum)}.",
+                f"Your total monthly expense estimate is Rs {int(expense_sum)}.",
+                "Forecasts will improve as you add real transaction data."
+            ]
+
+            return {
+                "forecast_chart_data": {"labels": weekly_labels, "categories": forecast_results},
+                "cashflow_chart_data": {"labels": weekly_labels, "values": cashflow_values},
+                "insights": insights,
+                "warnings": []
+            }
+
+        forecast_data, forecast_labels = forecast_weekly_expenses(df)
+        cashflow_labels, cashflow_values = forecast_net_cashflow(df)
+        insights, warnings = generate_insights(df)
+
+        return {
+            "forecast_chart_data": {"labels": forecast_labels, "categories": forecast_data},
+            "cashflow_chart_data": {"labels": cashflow_labels, "values": cashflow_values},
+            "insights": insights,
+            "warnings": warnings
+        }
+    except Exception as e:
+        print(f"Error in api_forecast_post: {str(e)}")
+        return {"error": f"An error occurred: {str(e)}"}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useContext } from "react";
 import axios from "axios";
 import {
   ResponsiveContainer,
@@ -12,40 +12,55 @@ import {
   Line,
   CartesianGrid,
 } from "recharts";
+import { useUserAuth } from "../../hooks/useUserAuth";
+import { UserContext } from "../../context/UserContext";
+import DashboardLayout from "../../components/layouts/DashboardLayout";
 
-const INSIGHTS_URL = "http://localhost:5005/api/insights";
+const FORECAST_BASE_URL = "http://localhost:5005/api/forecast";
 
 const Analysis = () => {
+  useUserAuth();
+  const { user } = useContext(UserContext);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [data, setData] = useState(null);
   const [rows, setRows] = useState([{ category: "Salary", amount: "50000" }]);
 
   const fetchInsights = useCallback(async () => {
+    if (!user?._id) {
+      setError("User not authenticated");
+      return;
+    }
+    
     setLoading(true);
     setError("");
     try {
-      const res = await axios.get(INSIGHTS_URL, { timeout: 15000 });
+      const res = await axios.get(`${FORECAST_BASE_URL}/${user._id}`, { timeout: 15000 });
       setData(res.data);
     } catch (e) {
       setError(e?.response?.data?.error || e.message || "Failed to load insights");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?._id]);
 
   const sendEstimates = useCallback(async (estimates) => {
+    if (!user?._id) {
+      setError("User not authenticated");
+      return;
+    }
+    
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(INSIGHTS_URL, { estimates }, { timeout: 15000 });
+      const res = await axios.post(`${FORECAST_BASE_URL}/${user._id}`, { estimates }, { timeout: 15000 });
       setData(res.data);
     } catch (e) {
       setError(e?.response?.data?.error || e.message || "Failed to post estimates");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?._id]);
 
   const addRow = () => setRows((r) => [...r, { category: "", amount: "" }]);
   const removeRow = (i) => setRows((r) => r.filter((_, idx) => idx !== i));
@@ -96,7 +111,8 @@ const Analysis = () => {
   const cashflowPoints = (cashflow.labels || []).map((l, i) => ({ week: l, value: cashflow.values?.[i] ?? 0 }));
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <DashboardLayout activeMenu="Analysis">
+      <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-gray-900">Analysis</h2>
@@ -249,7 +265,8 @@ const Analysis = () => {
           </section>
         </div>
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
