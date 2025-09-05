@@ -93,18 +93,21 @@ exports.uploadAndCategorizeIncomeBill = async (req, res) => {
     // Always use current date for bill upload
     const date = new Date();
     // Only analyze and return extracted data, do not save income
+    // Round amount to 2 decimal places
+    const roundedAmount = amount ? parseFloat(Number(amount).toFixed(2)) : null;
+
     // Backward-compatible shape with top-level fields
     res.status(200).json({
       message: "Income bill analyzed and categorized",
       category,
-      amount,
+      amount: roundedAmount,
       date,
       icon,
       billUrl,
       extractedText,
       income: {
         category,
-        amount,
+        amount: roundedAmount,
         date,
         icon,
         billUrl,
@@ -131,7 +134,7 @@ exports.addIncome = async (req, res) => {
       userId,
       icon,
       source,
-      amount,
+      amount: parseFloat(Number(amount).toFixed(2)),
       date: new Date(date),
     });
     await newIncome.save();

@@ -79,3 +79,29 @@ exports.getUserInfo = async (req, res) => {
       .json({ message: "Error regsitering user", error: err.message });
   }
 };
+
+//Update user profile
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { fullName, profileImageUrl } = req.body;
+
+    const updateData = {};
+    if (fullName) updateData.fullName = fullName;
+    if (profileImageUrl) updateData.profileImageUrl = profileImageUrl;
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+      new: true,
+    }).select("-password");
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(updatedUser);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Error updating user profile", error: err.message });
+  }
+};
