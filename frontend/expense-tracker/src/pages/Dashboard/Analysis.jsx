@@ -441,7 +441,7 @@ const Analysis = () => {
                     </svg>
                   </div>
                   <p className="text-gray-600 font-medium">All Good!</p>
-                  <p className="text-sm text-gray-400 mt-1">No warnings at this time</p>
+                  <p className="text-sm text-gray-400 mt-1">No warnings at this time.</p>
                 </div>
               )}
             </div>
