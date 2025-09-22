@@ -5,6 +5,7 @@ import { prepareIncomeBarChartData } from "../../utils/helper";
 
 const IncomeOverview = ({ transactions, onAddIncome }) => {
   const [charData, setCharData] = useState([]);
+  const totalIncome = transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
 
   useEffect(() => {
     const result = prepareIncomeBarChartData(transactions);
@@ -25,8 +26,19 @@ const IncomeOverview = ({ transactions, onAddIncome }) => {
           Add Income
         </button>
       </div>
-      <div className="mt-10">
-        <CustomBarChart data={charData}></CustomBarChart>
+      <div className="mt-4">
+        <span className="font-semibold text-purple-700 text-lg">
+          Total Income: Rs{totalIncome}
+        </span>
+      </div>
+      <div className="mt-6">
+        {charData.length === 0 ? (
+          <div className="text-center text-gray-400 py-10">
+            No income data for this month.
+          </div>
+        ) : (
+          <CustomBarChart data={charData} />
+        )}
       </div>
     </div>
   );

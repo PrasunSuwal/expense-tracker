@@ -13,3 +13,7 @@ pillow==11.3.0
 opencv-python==4.10.0.84
 statsmodels>=0.14.4
 pdfplumber==0.11.5
+
+
+ "mongodb+srv://prasunsuwal:Am71NQ9zpK0FNHeZ@expensetracker.mknvcqt.mongodb.net/?retryWrites=true&w=majority&appName=expenseTracker"
+"mongodb+srv://dishantghimire10:3hsQ2m4JAJlNKDO8@expensetracker.87kcsh4.mongodb.net/?retryWrites=true&w=majority&appName=expenseTracker"
