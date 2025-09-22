@@ -238,8 +238,7 @@ const LandingPage = () => {
               Income/Budgets Management
             </h3>
             <p className="text-gray-600">
-              Organizing and controlling income and expenses to ensure financial
-              goals are met.
+              Organizing and controlling income and expenses.
             </p>
           </div>
           <div className="bg-white rounded-xl p-8 shadow hover:shadow-lg flex flex-col items-center transition">
