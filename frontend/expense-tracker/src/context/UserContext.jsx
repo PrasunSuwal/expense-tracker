@@ -3,16 +3,22 @@ import React, { createContext, useState } from "react";
 export const UserContext = createContext();
 
 const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    // Try to load user from localStorage on mount
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  });
 
-  //function to update user data
+  // Update user and persist to localStorage
   const updateUser = (userData) => {
     setUser(userData);
+    localStorage.setItem("user", JSON.stringify(userData));
   };
 
-  //function to clear user data(eg.. on logout)
+  // Clear user and remove from localStorage
   const clearUser = () => {
     setUser(null);
+    localStorage.removeItem("user");
   };
 
   return (
