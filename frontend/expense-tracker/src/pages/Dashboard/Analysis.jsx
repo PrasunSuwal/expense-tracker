@@ -89,17 +89,35 @@ const Analysis = () => {
   
 
   // Helpers for charts
+  // Normalize category keys: trim and lowercase
+  const normalizeKey = (key) => key.trim().toLowerCase();
   const buildForecastBars = (forecast) => {
     const { labels = [], categories = {} } = forecast || {};
+    // Build a normalized categories object
+    const normalizedCategories = {};
+    Object.entries(categories).forEach(([cat, vals]) => {
+      const norm = normalizeKey(cat);
+      if (!normalizedCategories[norm]) {
+        normalizedCategories[norm] = vals;
+      } else {
+        // If duplicate, sum the values
+        normalizedCategories[norm] = normalizedCategories[norm].map((v, i) => (v || 0) + (vals[i] || 0));
+      }
+    });
     return labels.map((label, idx) => {
       const row = { month: label };
-      Object.entries(categories).forEach(([cat, vals]) => {
+      Object.entries(normalizedCategories).forEach(([cat, vals]) => {
         row[cat] = Array.isArray(vals) ? vals[idx] ?? 0 : 0;
       });
       return row;
     });
   };
-  const categoryKeys = (forecast) => Object.keys(forecast?.categories || {});
+  const categoryKeys = (forecast) => {
+    if (!forecast?.categories) return [];
+    const keys = Object.keys(forecast.categories).map(normalizeKey);
+    // Remove duplicates
+    return Array.from(new Set(keys));
+  };
 
   const noHistorical =
     data?.forecast_chart_data &&
