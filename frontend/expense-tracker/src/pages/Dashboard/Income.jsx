@@ -21,6 +21,10 @@ const Income = () => {
     data: null,
   });
   const [openAddIncomeModal, setOpenAddIncomeModal] = useState(false);
+  // Month/year selection
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1-12
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
   //Get all Income Details
   const fetchIncomeDetails = async () => {
@@ -28,7 +32,7 @@ const Income = () => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(
-        `${API_PATHS.INCOME.GET_ALL_INCOME}`
+        `${API_PATHS.INCOME.GET_ALL_INCOME}?month=${selectedMonth}&year=${selectedYear}`
       );
       if (response.data) {
         setIncomeData(response.data);
@@ -115,26 +119,77 @@ const Income = () => {
   useEffect(() => {
     fetchIncomeDetails();
     return () => {};
-  }, []);
+  }, [selectedMonth, selectedYear]);
 
   return (
     <DashboardLayout activeMenu="Income">
       <div className="my-5 mx-auto">
-        <div className="grid grid-cols-1 gap-6">
-          <div className="">
-            <IncomeOverview
+        {/* Month/year selector */}
+        <div className="flex gap-2 mb-4 items-center">
+          <button
+            className="px-2 py-1 rounded bg-gray-200"
+            onClick={() =>
+              setSelectedMonth(selectedMonth === 1 ? 12 : selectedMonth - 1)
+            }
+            aria-label="Previous Month"
+          >
+            &#8592;
+          </button>
+          {[...Array(12)].map((_, i) => (
+            <button
+              key={i + 1}
+              className={`px-3 py-1 rounded ${
+                selectedMonth === i + 1
+                  ? "bg-purple-600 text-white"
+                  : "bg-gray-200"
+              }`}
+              onClick={() => setSelectedMonth(i + 1)}
+            >
+              {new Date(0, i).toLocaleString("default", { month: "short" })}
+            </button>
+          ))}
+          <button
+            className="px-2 py-1 rounded bg-gray-200"
+            onClick={() =>
+              setSelectedMonth(selectedMonth === 12 ? 1 : selectedMonth + 1)
+            }
+            aria-label="Next Month"
+          >
+            &#8594;
+          </button>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="ml-2 px-2 py-1 rounded border"
+          >
+            {[...Array(5)].map((_, i) => (
+              <option key={i} value={now.getFullYear() - i}>
+                {now.getFullYear() - i}
+              </option>
+            ))}
+          </select>
+        </div>
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-600"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            <div className="">
+              <IncomeOverview
+                transactions={incomeData}
+                onAddIncome={setOpenAddIncomeModal}
+              />
+            </div>
+            <IncomeList
               transactions={incomeData}
-              onAddIncome={setOpenAddIncomeModal}
+              onDelete={(id) => {
+                setOpenDeleteAlert({ show: true, data: id });
+              }}
+              onDownload={handleDownloadIncomeDetails}
             />
           </div>
-          <IncomeList
-            transactions={incomeData}
-            onDelete={(id) => {
-              setOpenDeleteAlert({ show: true, data: id });
-            }}
-            onDownload={handleDownloadIncomeDetails}
-          />
-        </div>
+        )}
 
         <Modal
           isOpen={openAddIncomeModal}

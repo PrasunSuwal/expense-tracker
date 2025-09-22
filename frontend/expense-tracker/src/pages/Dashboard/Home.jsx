@@ -22,15 +22,22 @@ const Home = () => {
 
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1-12
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [overall, setOverall] = useState(false); // default is current month
 
   const fetchDashboardData = async () => {
     if (loading) return;
     setLoading(true);
-
     try {
-      const response = await axiosInstance.get(
-        `${API_PATHS.DASHBOARD.GET_DATA}`
-      );
+      let url = `${API_PATHS.DASHBOARD.GET_DATA}`;
+      if (overall) {
+        url += `?overall=true`;
+      } else {
+        url += `?month=${selectedMonth}&year=${selectedYear}`;
+      }
+      const response = await axiosInstance.get(url);
       if (response.data) {
         setDashboardData(response.data);
       }
@@ -44,13 +51,39 @@ const Home = () => {
   useEffect(() => {
     fetchDashboardData();
     return () => {};
-  }, []);
+  }, [selectedMonth, selectedYear, overall]);
 
   // console.log("dashboardData", dashboardData);
 
   return (
     <DashboardLayout activeMenu="Dashboard">
       <div className="my-5 mx-auto">
+        {/* Dropdown selector for month/year/overall, right aligned */}
+        <div className="mb-4 flex items-center justify-end">
+          <select
+            value={overall ? "overall" : selectedMonth}
+            onChange={(e) => {
+              if (e.target.value === "overall") {
+                setOverall(true);
+              } else {
+                setSelectedMonth(Number(e.target.value));
+                setOverall(false);
+              }
+            }}
+            className="px-3 py-2 rounded text-base focus:outline-none focus:ring-2 focus:ring-purple-300 bg-white shadow-sm"
+            style={{ minWidth: 180, border: "none" }}
+          >
+            <option value="overall">Overall</option>
+            {[...Array(12)].map((_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {new Date(now.getFullYear(), i).toLocaleString("default", {
+                  month: "long",
+                })}{" "}
+                {now.getFullYear()}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <InfoCard
             icon={<IoMdCard />}
@@ -95,12 +128,12 @@ const Home = () => {
 
           <RecentIncomeWithChart
             data={
-              dashboardData?.last60DaysIncome?.transactions?.slice(0, 4) || []
+              dashboardData?.last30DaysIncome?.transactions?.slice(0, 4) || []
             }
             totalIncome={dashboardData?.totalIncome || 0}
           />
           <RecentIncome
-            transactions={dashboardData?.last60DaysIncome?.transactions || []}
+            transactions={dashboardData?.last30DaysIncome?.transactions || []}
             onSeeMore={() => navigate("/income")}
           />
         </div>

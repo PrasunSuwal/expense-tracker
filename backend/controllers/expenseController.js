@@ -161,8 +161,16 @@ exports.uploadAndCategorizeBill = async (req, res) => {
 // Get all expenses
 exports.getAllExpense = async (req, res) => {
   const userId = req.user.id;
+  const { month, year } = req.query;
+  let filter = { userId };
+  if (month && year) {
+    // month: 1-12, year: YYYY
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+    filter.date = { $gte: startDate, $lt: endDate };
+  }
   try {
-    const expense = await Expense.find({ userId }).sort({ date: -1 });
+    const expense = await Expense.find(filter).sort({ date: -1 });
     res.json(expense);
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
