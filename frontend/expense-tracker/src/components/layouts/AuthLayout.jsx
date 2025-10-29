@@ -1,7 +1,7 @@
 import React from "react";
 import CARD from "../../assets/images/card.png";
 import { LuTrendingUpDown } from "react-icons/lu";
-import logo from "../../assets/images/logo.png";
+import logo2 from "../../assets/images/logo2.png";
 import { useNavigate } from "react-router-dom";
 
 const AuthLayout = ({ children }) => {
@@ -14,7 +14,11 @@ const AuthLayout = ({ children }) => {
           className="flex items-center mb-6 cursor-pointer"
           onClick={() => navigate("/")}
         >
-          <img src={logo} alt="Logo" className="rounded-full w-20 h-20 mr-3" />
+          <img
+            src={logo2}
+            alt="Logo"
+            className="rounded-full w-20 h-20 mr-3 object-cover"
+          />
           <h2 className="text-2xl font-bold text-purple-700">AutoCA</h2>
         </div>
         {children}

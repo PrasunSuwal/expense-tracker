@@ -2,7 +2,7 @@ import React from "react";
 import { useState } from "react";
 import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
 import SideMenu from "./SideMenu";
-import logo from "../../assets/images/logo.png";
+import logo2 from "../../assets/images/logo2.png";
 import { useNavigate } from "react-router-dom";
 
 const Navbar = ({ activeMenu }) => {
@@ -28,7 +28,11 @@ const Navbar = ({ activeMenu }) => {
         className="flex items-center cursor-pointer"
         onClick={() => navigate("/")}
       >
-        <img src={logo} alt="Logo" className="rounded-full w-10 h-10 mr-2" />
+        <img
+          src={logo2}
+          alt="Logo"
+          className="rounded-full w-10 h-10 mr-2 object-cover"
+        />
         <h2 className="text-lg font-bold text-purple-700">AutoCA</h2>
       </div>
       {openSideMenu && (

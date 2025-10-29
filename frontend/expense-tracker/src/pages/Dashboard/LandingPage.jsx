@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../../assets/images/logo.png";
+// import logo from "../../assets/images/logo.png";
 import hero from "../../assets/images/hero.png";
 import demo from "../../assets/images/demo.png";
 import about from "../../assets/images/about.png";
@@ -13,6 +13,8 @@ import bills from "../../assets/images/bills.png";
 import shikshya from "../../assets/images/shikshya.png";
 import rabi from "../../assets/images/rabi.png";
 import shreya from "../../assets/images/shreya.png";
+import logo2 from "../../assets/images/logo2.png";
+
 import { useContext } from "react";
 import { UserContext } from "../../context/UserContext";
 
@@ -36,7 +38,11 @@ const LandingPage = () => {
       {/* Navigation */}
       <header className="flex justify-between items-center px-4 py-3 border-b border-gray-200 sticky top-0 z-50 bg-white">
         <div className="flex items-center">
-          <img src={logo} alt="Logo" className="rounded-full w-20 h-20 mr-3" />
+          <img
+            src={logo2}
+            alt="Logo"
+            className="rounded-full w-20 h-20 mr-3 object-cover"
+          />
           <h2 className="text-2xl font-bold text-purple-700">AutoCA</h2>
         </div>
         <nav>
@@ -147,10 +153,10 @@ const LandingPage = () => {
 
       {/* Hero Section */}
       <section
-        className="flex flex-col md:flex-row items-center justify-between px-10 py-16 md:py-24"
+        className="flex flex-col md:flex-row items-center justify-between px-10 py-4 md:py-6"
         id="home"
       >
-        <div className="max-w-xl mb-10 md:mb-0">
+        <div className="max-w-xl mb-6 md:mb-0">
           <h1 className="text-5xl font-extrabold mb-6">Welcome to AutoCA</h1>
           <p className="text-lg text-gray-600 mb-8">
             Navigate Your Finances with AutoCA.
@@ -172,12 +178,12 @@ const LandingPage = () => {
       </section>
 
       {/* Demo Image Section */}
-      <section className="py-8 px-10">
+      <section className="py-2 px-10">
         <div className="flex justify-center">
           <img
             src={demo}
             alt="Finance Illustration"
-            className="max-w-full h-auto rounded-xl shadow-md"
+            className="max-w-5xl w-full h-auto rounded-xl shadow-md"
           />
         </div>
       </section>

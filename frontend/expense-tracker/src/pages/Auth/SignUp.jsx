@@ -87,14 +87,14 @@ const SignUp = () => {
               value={fullName}
               onChange={({ target }) => setFullName(target.value)}
               label="Full Name"
-              placeholder="John"
+              placeholder=""
               type="text"
             />
             <Input
               value={email}
               onChange={({ target }) => setEmail(target.value)}
               label="Email Address"
-              placeholder="john@example.com"
+              placeholder=""
               type="text"
             />
             <div className="col-span-2">
