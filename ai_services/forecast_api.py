@@ -759,14 +759,7 @@ def generate_insights(df):
         warnings.append(
             "Your expenses increased sharply this month, you might save less next month if this continues.")
 
-    avg_monthly_expense = last_3_months[last_3_months['type'] == 'expense'].groupby(
-        pd.Grouper(key='date', freq='M'))['amount'].sum().mean()
-    emergency_fund_needed = avg_monthly_expense * 3
-    emergency_fund_saved = savings if savings > 0 else 0
-    if emergency_fund_saved < emergency_fund_needed:
-        diff = int(emergency_fund_needed - emergency_fund_saved)
-        insights.append(
-            f"You should maintain an emergency fund of Rs {int(emergency_fund_needed)} (3 months expenses). You are Rs {diff} short.")
+    # Emergency fund insight removed as per user request
 
     if savings > 0:
         months = 12 * 5
