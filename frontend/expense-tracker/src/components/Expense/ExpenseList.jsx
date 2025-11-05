@@ -3,13 +3,13 @@ import React from "react";
 import { LuDownload } from "react-icons/lu";
 import TransactionInfoCard from "../Cards/TransactionInfoCard";
 
-const ExpenseList = ({ transactions, onDelete, onDownload }) => {
+const ExpenseList = ({ transactions, onDelete, onEdit, onDownload }) => {
   return (
     <div className="card">
       <div className="flex items-center justify-between">
         <h5 className="text-lg">All Expenses</h5>
-        <button className="card-btn">
-          <LuDownload className="text-base" onClick={onDownload} />
+        <button className="card-btn" onClick={onDownload}>
+          <LuDownload className="text-base" />
           Download
         </button>
       </div>
@@ -22,7 +22,9 @@ const ExpenseList = ({ transactions, onDelete, onDownload }) => {
             date={moment(expense.date).format("Do MMM YYYY")}
             amount={expense.amount}
             type="expense"
+            notes={expense.notes}
             onDelete={() => onDelete(expense._id)}
+            onEdit={() => onEdit(expense)}
           />
         ))}
       </div>

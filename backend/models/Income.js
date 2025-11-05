@@ -13,6 +13,7 @@ const IncomeSchema = new mongoose.Schema(
     date: { type: Date, default: Date.now },
     billUrl: { type: String },
     category: { type: String },
+    notes: { type: String },
   },
   { timestamps: true }
 );

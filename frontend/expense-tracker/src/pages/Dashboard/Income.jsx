@@ -21,6 +21,7 @@ const Income = () => {
     data: null,
   });
   const [openAddIncomeModal, setOpenAddIncomeModal] = useState(false);
+  const [editingIncome, setEditingIncome] = useState(null);
   // Month/year selection
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1-12
@@ -46,7 +47,7 @@ const Income = () => {
 
   //Handle All Income
   const handleAddIncome = async (income) => {
-    const { source, amount, date, icon } = income;
+    const { source, amount, date, icon, notes } = income;
 
     //Validation checks
     if (!source.trim()) {
@@ -66,6 +67,7 @@ const Income = () => {
         amount,
         date,
         icon,
+        notes,
       });
       setOpenAddIncomeModal(false);
       toast.success("Income added successfully.");
@@ -90,6 +92,53 @@ const Income = () => {
         "Error deleting income",
         error.response?.data?.message || error.message
       );
+    }
+  };
+
+  //Handle Edit Income
+  const handleEditIncome = (income) => {
+    setEditingIncome(income);
+    setOpenAddIncomeModal(true);
+  };
+
+  //Handle Update Income
+  const handleUpdateIncome = async (income) => {
+    const { source, amount, date, icon, notes } = income;
+
+    //Validation checks
+    if (!source.trim()) {
+      toast.error("Source is required.");
+      return;
+    }
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      toast.error("Amount is required and should be a positive number.");
+      return;
+    }
+    if (!date) {
+      toast.error("Date is required.");
+      return;
+    }
+    try {
+      await axiosInstance.put(
+        API_PATHS.INCOME.UPDATE_INCOME(editingIncome._id),
+        {
+          source,
+          amount,
+          date,
+          icon,
+          notes,
+        }
+      );
+      setOpenAddIncomeModal(false);
+      setEditingIncome(null);
+      toast.success("Income updated successfully.");
+      fetchIncomeDetails();
+    } catch (error) {
+      console.error(
+        "Error updating income",
+        error.response?.data?.message || error.message
+      );
+      toast.error("Failed to update income.");
     }
   };
 
@@ -186,6 +235,7 @@ const Income = () => {
               onDelete={(id) => {
                 setOpenDeleteAlert({ show: true, data: id });
               }}
+              onEdit={handleEditIncome}
               onDownload={handleDownloadIncomeDetails}
             />
           </div>
@@ -193,10 +243,17 @@ const Income = () => {
 
         <Modal
           isOpen={openAddIncomeModal}
-          onClose={() => setOpenAddIncomeModal(false)}
-          title="Add Income"
+          onClose={() => {
+            setOpenAddIncomeModal(false);
+            setEditingIncome(null);
+          }}
+          title={editingIncome ? "Edit Income" : "Add Income"}
         >
-          <AddIncomeForm onAddIncome={handleAddIncome} />
+          <AddIncomeForm
+            onAddIncome={handleAddIncome}
+            editingIncome={editingIncome}
+            onUpdateIncome={handleUpdateIncome}
+          />
         </Modal>
         <Modal
           isOpen={openDeleteAlert.show}

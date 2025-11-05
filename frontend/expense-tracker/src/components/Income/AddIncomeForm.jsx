@@ -1,16 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Input from "../Inputs/Input";
 import EmojiPickerPopup from "../EmojiPickerPopup";
 import { API_PATHS } from "../../utils/apiPaths";
 import { ocrAxios } from "../../utils/axiosInstance";
 
-const AddIncomeForm = ({ onAddIncome }) => {
+const AddIncomeForm = ({ onAddIncome, editingIncome, onUpdateIncome }) => {
   const [income, setIncome] = useState({
     source: "",
     amount: "",
     date: "",
     icon: "",
+    notes: "",
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingIncome) {
+      setIncome({
+        source: editingIncome.source || "",
+        amount: editingIncome.amount || "",
+        date: editingIncome.date ? editingIncome.date.slice(0, 10) : "",
+        icon: editingIncome.icon || "",
+        notes: editingIncome.notes || "",
+      });
+    }
+  }, [editingIncome]);
+
   const [, setBillFile] = useState(null);
   const [detectedCategory, setDetectedCategory] = useState("");
   const [extractedText, setExtractedText] = useState("");
@@ -119,6 +134,18 @@ const AddIncomeForm = ({ onAddIncome }) => {
         placeholder=""
         type="date"
       />
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Additional Notes
+        </label>
+        <textarea
+          value={income.notes}
+          onChange={({ target }) => handleChange("notes", target.value)}
+          placeholder="Add any additional details about this income source..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-vertical min-h-[80px]"
+          rows={3}
+        />
+      </div>
       <Input
         label="Upload Bill (Image/PDF)"
         type="file"
@@ -170,10 +197,12 @@ const AddIncomeForm = ({ onAddIncome }) => {
       <div className="flex justify-end mt-6">
         <button
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-          onClick={() => onAddIncome(income)}
+          onClick={() =>
+            editingIncome ? onUpdateIncome(income) : onAddIncome(income)
+          }
           type="button"
         >
-          Add Income
+          {editingIncome ? "Update Income" : "Add Income"}
         </button>
       </div>
     </div>

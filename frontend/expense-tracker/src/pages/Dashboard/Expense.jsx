@@ -19,6 +19,7 @@ const Expense = () => {
     data: null,
   });
   const [openAddExpenseModal, setOpenAddExpenseModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState(null);
   // Month/year selection
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1-12
@@ -44,7 +45,7 @@ const Expense = () => {
 
   //Handle All Expense
   const handleAddExpense = async (expense) => {
-    const { category, amount, date, icon } = expense;
+    const { category, amount, date, icon, notes } = expense;
 
     //Validation checks
     if (!category.trim()) {
@@ -64,6 +65,7 @@ const Expense = () => {
         amount,
         date,
         icon,
+        notes,
       });
       setOpenAddExpenseModal(false);
       toast.success("Expense added successfully.");
@@ -91,6 +93,54 @@ const Expense = () => {
     }
   };
 
+  //Handle Edit Expense
+  const handleEditExpense = (expense) => {
+    setEditingExpense(expense);
+    setOpenAddExpenseModal(true);
+  };
+
+  //Handle Update Expense
+  const handleUpdateExpense = async (expense) => {
+    const { category, amount, date, icon, notes } = expense;
+
+    //Validation checks
+    if (!category.trim()) {
+      toast.error("Category is required.");
+      return;
+    }
+    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+      toast.error("Amount is required and should be a positive number.");
+      return;
+    }
+    if (!date) {
+      toast.error("Date is required.");
+      return;
+    }
+
+    try {
+      await axiosInstance.put(
+        API_PATHS.EXPENSE.UPDATE_EXPENSE(editingExpense._id),
+        {
+          category,
+          amount,
+          date,
+          icon,
+          notes,
+        }
+      );
+      setOpenAddExpenseModal(false);
+      setEditingExpense(null);
+      toast.success("Expense updated successfully.");
+      fetchExpenseDetails();
+    } catch (error) {
+      console.error(
+        "Error updating expense",
+        error.response?.data?.message || error.message
+      );
+      toast.error("Error updating expense");
+    }
+  };
+
   //handle download expense details
   const handleDownloadExpenseDetails = async () => {
     try {
@@ -100,6 +150,7 @@ const Expense = () => {
           responseType: "blob",
         }
       );
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -108,9 +159,13 @@ const Expense = () => {
       link.click();
       link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
+
+      toast.success("Expense details downloaded successfully!");
     } catch (error) {
-      console.error("Error downloading expense details", error);
-      toast.error("Error downloading expense details");
+      console.error("Error downloading expense details:", error);
+      toast.error(
+        error.response?.data?.message || "Error downloading expense details"
+      );
     }
   };
 
@@ -182,16 +237,24 @@ const Expense = () => {
             <ExpenseList
               transactions={expenseData}
               onDelete={(id) => setOpenDeleteAlert({ show: true, data: id })}
+              onEdit={handleEditExpense}
               onDownload={handleDownloadExpenseDetails}
             />
           </div>
         )}
         <Modal
           isOpen={openAddExpenseModal}
-          onClose={() => setOpenAddExpenseModal(false)}
-          title="Add Expense"
+          onClose={() => {
+            setOpenAddExpenseModal(false);
+            setEditingExpense(null);
+          }}
+          title={editingExpense ? "Edit Expense" : "Add Expense"}
         >
-          <AddExpenseForm onAddExpense={handleAddExpense} />
+          <AddExpenseForm
+            onAddExpense={handleAddExpense}
+            onUpdateExpense={handleUpdateExpense}
+            editingExpense={editingExpense}
+          />
         </Modal>
 
         <Modal

@@ -1,16 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axiosInstance, { ocrAxios } from "../../utils/axiosInstance";
 import { API_PATHS } from "../../utils/apiPaths";
 import Input from "../Inputs/Input";
 import EmojiPickerPopup from "../EmojiPickerPopup";
 
-const AddExpenseForm = ({ onAddExpense }) => {
-  const [income, setIncome] = useState({
+const AddExpenseForm = ({ onAddExpense, editingExpense, onUpdateExpense }) => {
+  const [expense, setExpense] = useState({
     category: "",
     amount: "",
     date: "",
     icon: "",
+    notes: "",
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingExpense) {
+      setExpense({
+        category: editingExpense.category || "",
+        amount: editingExpense.amount || "",
+        date: editingExpense.date ? editingExpense.date.slice(0, 10) : "",
+        icon: editingExpense.icon || "",
+        notes: editingExpense.notes || "",
+      });
+    }
+  }, [editingExpense]);
+
   const [, setBillFile] = useState(null);
   const [detectedCategory, setDetectedCategory] = useState("");
   const [extractedText, setExtractedText] = useState("");
@@ -20,7 +35,7 @@ const AddExpenseForm = ({ onAddExpense }) => {
   const [feedbackNote, setFeedbackNote] = useState("");
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
 
-  const handleChange = (key, value) => setIncome({ ...income, [key]: value });
+  const handleChange = (key, value) => setExpense({ ...expense, [key]: value });
 
   const handleBillChange = async (e) => {
     const file = e.target.files[0];
@@ -60,7 +75,7 @@ const AddExpenseForm = ({ onAddExpense }) => {
         other: "📝",
       };
 
-      setIncome((prev) => ({
+      setExpense((prev) => ({
         ...prev,
         category: cat || prev.category,
         amount:
@@ -83,7 +98,7 @@ const AddExpenseForm = ({ onAddExpense }) => {
       await ocrAxios.post(API_PATHS.OCR.FEEDBACK, {
         raw_text: extractedText,
         correct_category:
-          feedbackCategory || detectedCategory || income.category || "",
+          feedbackCategory || detectedCategory || expense.category || "",
         amount: feedbackAmount ? Number(feedbackAmount) : undefined,
       });
       setFeedbackNote("Thanks! Your feedback was saved.");
@@ -99,30 +114,42 @@ const AddExpenseForm = ({ onAddExpense }) => {
   return (
     <div>
       <EmojiPickerPopup
-        icon={income.icon || "💸"}
+        icon={expense.icon || "💸"}
         onSelect={(selectedIcon) => handleChange("icon", selectedIcon)}
       />
       <Input
-        value={income.category}
+        value={expense.category}
         onChange={({ target }) => handleChange("category", target.value)}
         label="Category"
         placeholder="Rent, Groceries, etc."
         type="text"
       />
       <Input
-        value={income.amount}
+        value={expense.amount}
         onChange={({ target }) => handleChange("amount", target.value)}
         label="Amount"
         placeholder=""
         type="number"
       />
       <Input
-        value={income.date}
+        value={expense.date}
         onChange={({ target }) => handleChange("date", target.value)}
         label="Date"
         placeholder=""
         type="date"
       />
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Additional Notes
+        </label>
+        <textarea
+          value={expense.notes}
+          onChange={({ target }) => handleChange("notes", target.value)}
+          placeholder="Add any additional details about this expense..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-vertical min-h-[80px]"
+          rows={3}
+        />
+      </div>
       <Input
         label="Upload Bill (Image/PDF)"
         type="file"
@@ -175,9 +202,11 @@ const AddExpenseForm = ({ onAddExpense }) => {
         <button
           className="add-btn add-btn-fill"
           type="button"
-          onClick={() => onAddExpense(income)}
+          onClick={() =>
+            editingExpense ? onUpdateExpense(expense) : onAddExpense(expense)
+          }
         >
-          Add Expense
+          {editingExpense ? "Update Expense" : "Add Expense"}
         </button>
       </div>
     </div>

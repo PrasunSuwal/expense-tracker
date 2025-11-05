@@ -3,6 +3,7 @@ const {
   addExpense,
   getAllExpense,
   deleteExpense,
+  updateExpense,
   downloadExpenseExcel,
 } = require("../controllers/expenseController");
 const { protect } = require("../middleware/authMiddleware");
@@ -15,8 +16,14 @@ router.post("/add", protect, addExpense);
 router.get("/get", protect, getAllExpense);
 router.get("/downloadexcel", protect, downloadExpenseExcel);
 router.delete("/:id", protect, deleteExpense);
+router.put("/:id", protect, updateExpense);
 
 // Bill upload and categorization endpoint
-router.post("/upload-bill", protect, upload.single("bill"), uploadAndCategorizeBill);
+router.post(
+  "/upload-bill",
+  protect,
+  upload.single("bill"),
+  uploadAndCategorizeBill
+);
 
 module.exports = router;

@@ -3,6 +3,7 @@ const {
   addIncome,
   getAllIncome,
   deleteIncome,
+  updateIncome,
   downloadIncomeExcel,
   uploadAndCategorizeIncomeBill,
 } = require("../controllers/incomeController");
@@ -15,6 +16,7 @@ router.post("/add", protect, addIncome);
 router.get("/get", protect, getAllIncome);
 router.get("/downloadexcel", protect, downloadIncomeExcel);
 router.delete("/:id", protect, deleteIncome);
+router.put("/:id", protect, updateIncome);
 
 // Bill upload and categorization endpoint for income
 // Bill upload and categorization endpoint for income

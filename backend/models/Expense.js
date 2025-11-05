@@ -12,8 +12,7 @@ const ExpenseSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     date: { type: Date, default: Date.now },
     billUrl: { type: String },
-    category: { type: String },
-
+    notes: { type: String },
   },
   { timestamps: true }
 );

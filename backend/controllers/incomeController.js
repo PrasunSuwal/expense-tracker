@@ -124,7 +124,7 @@ const Income = require("../models/Income");
 exports.addIncome = async (req, res) => {
   const userId = req.user.id;
   try {
-    const { icon, source, amount, date } = req.body;
+    const { icon, source, amount, date, notes } = req.body;
 
     //validate for missing fields
     if (!source || !amount || !date) {
@@ -136,6 +136,7 @@ exports.addIncome = async (req, res) => {
       source,
       amount: parseFloat(Number(amount).toFixed(2)),
       date: new Date(date),
+      notes: notes || "",
     });
     await newIncome.save();
     res.status(200).json(newIncome);
@@ -174,6 +175,41 @@ exports.deleteIncome = async (req, res) => {
   }
 };
 
+//Update Income Source
+exports.updateIncome = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const { icon, source, amount, date, notes } = req.body;
+
+    //validate for missing fields
+    if (!source || !amount || !date) {
+      return res
+        .status(401)
+        .json({ message: "All required fields must be provided" });
+    }
+
+    const updatedIncome = await Income.findByIdAndUpdate(
+      req.params.id,
+      {
+        icon,
+        source,
+        amount: parseFloat(Number(amount).toFixed(2)),
+        date: new Date(date),
+        notes: notes || "",
+      },
+      { new: true }
+    );
+
+    if (!updatedIncome) {
+      return res.status(404).json({ message: "Income not found" });
+    }
+
+    res.status(200).json(updatedIncome);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
 //Download excel
 exports.downloadIncomeExcel = async (req, res) => {
   const userId = req.user.id;
@@ -185,13 +221,30 @@ exports.downloadIncomeExcel = async (req, res) => {
       Source: item.source,
       Amount: item.amount,
       Date: item.date,
+      Notes: item.notes || "",
     }));
+
     const wb = xlsx.utils.book_new();
     const ws = xlsx.utils.json_to_sheet(data);
     xlsx.utils.book_append_sheet(wb, ws, "Income");
-    xlsx.writeFile(wb, "income_details.xlsx");
-    res.download("income_details.xlsx");
+
+    // Generate buffer instead of writing to file
+    const buffer = xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
+
+    // Set headers for file download
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=income-details.xlsx"
+    );
+
+    // Send buffer directly
+    res.send(buffer);
   } catch (error) {
+    console.error("Error downloading income excel:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
