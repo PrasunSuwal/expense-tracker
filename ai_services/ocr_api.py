@@ -54,7 +54,7 @@ category_keywords = {
     "Investment": ["investment", "dividend", "interest", "stock", "mutual fund"],
     "Freelance": ["freelance", "contract", "gig", "project"],
     "Gift": ["gift", "present", "donation"],
-    "Financial": ["financial", "bank", "loan", "credit", "debit", "credit card", "debit card", "bank statement", "bank account"],
+    "Financial": ["financial", "EMI", "bank", "loan", "credit", "debit", "credit card", "debit card", "bank statement", "bank account"],
     "Education": ["education", "school", "college", "university", "tuition", "fees", "scholarship", "study", "learning"],
  
 }

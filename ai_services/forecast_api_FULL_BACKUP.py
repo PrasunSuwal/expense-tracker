@@ -1066,16 +1066,15 @@ def clean_forecast_results(forecast_results):
 # Cashflow function removed - replaced with comprehensive AI insights
 
 
-def generate_ai_insights_and_warnings(df: pd.DataFrame, forecast_data: Dict, confidence: float, metrics: Dict, next_month_label: str = "") -> Tuple[List[str], List[str], List[str]]:
+def generate_ai_insights_and_warnings(df: pd.DataFrame, forecast_data: Dict, confidence: float, metrics: Dict, next_month_label: str = "") -> Tuple[List[str], List[str]]:
     """
-    Generate realistic AI-powered insights, warnings, and actionable recommendations based on past month data correlation
+    Generate realistic AI-powered insights and warnings based on past month data correlation
     """
     insights = []
     warnings = []
-    recommendations = []
     
     if df.empty:
-        return ["No financial data available. Start tracking your expenses and income to get personalized insights."], [], []
+        return ["No financial data available. Start tracking your expenses and income to get personalized insights."], []
     
     # Separate expenses and income
     expenses = df[df['type'] == 'expense'].copy()
@@ -1287,110 +1286,12 @@ def generate_ai_insights_and_warnings(df: pd.DataFrame, forecast_data: Dict, con
         if burn_rate > 95 and projected_savings < 1000:
             warnings.append(f"🔥 Critical Burn Rate: Next month forecast leaves only Rs. {projected_savings:.0f} ({100-burn_rate:.1f}%) for savings")
     
-    # ==================== ACTIONABLE RECOMMENDATIONS ====================
-    
-    # 1. Savings Recommendations
-    if last_month_income_total > 0 and last_month_expense_total > 0:
-        last_month_savings = last_month_income_total - last_month_expense_total
-        savings_rate = (last_month_savings / last_month_income_total) * 100
-        
-        if savings_rate < 0:
-            deficit = abs(last_month_savings)
-            recommendations.append(f"💰 Emergency Action: Create a deficit recovery plan. Cut non-essential expenses by Rs. {deficit * 0.5:.0f} and look for additional income sources.")
-            recommendations.append(f"📊 Budget Strategy: Review your top 3 expense categories and identify areas to reduce spending by 20-30%.")
-        elif savings_rate < 10:
-            target_savings = last_month_income_total * 0.20
-            gap = target_savings - last_month_savings
-            recommendations.append(f"🎯 Savings Goal: Aim to save Rs. {gap:.0f} more per month to reach the recommended 20% savings rate.")
-        elif savings_rate < 20:
-            recommendations.append(f"📈 Good Progress: You're saving {savings_rate:.1f}%. Try the 50/30/20 rule: 50% needs, 30% wants, 20% savings.")
-        else:
-            recommendations.append(f"⭐ Excellent! You're saving {savings_rate:.1f}%. Consider investing excess savings in mutual funds, SIPs, or emergency fund.")
-    
-    # 2. Category-Specific Recommendations
-    if len(last_month_by_category) > 0:
-        # Lifestyle spending recommendations
-        lifestyle_cats = ['entertainment', 'dining', 'travel', 'shopping', 'leisure', 'hobbies', 'gym']
-        lifestyle_spending = last_month_expenses[last_month_expenses['category'].str.lower().isin(lifestyle_cats)]['amount'].sum()
-        
-        if lifestyle_spending > 0 and last_month_expense_total > 0:
-            lifestyle_pct = (lifestyle_spending / last_month_expense_total) * 100
-            
-            if lifestyle_pct > 40:
-                reduction_target = lifestyle_spending * 0.3
-                recommendations.append(f"🎯 Lifestyle Optimization: Your lifestyle spending is {lifestyle_pct:.0f}%. Consider reducing by Rs. {reduction_target:.0f}/month through meal prep and free entertainment alternatives.")
-            elif lifestyle_pct > 30:
-                recommendations.append(f"⚖️ Balance Needed: {lifestyle_pct:.0f}% on lifestyle is manageable but could be optimized. Set weekly spending limits.")
-        
-        # Food & Groceries recommendations
-        food_cats = ['food', 'groceries', 'dining']
-        food_spending = last_month_expenses[last_month_expenses['category'].str.lower().isin(food_cats)]['amount'].sum()
-        
-        if food_spending > 15000:
-            recommendations.append(f"🍽️ Food Budget: Spending Rs. {food_spending:.0f} on food. Try meal planning and cooking at home 5 days/week to save ~Rs. {food_spending * 0.25:.0f}.")
-        
-        # Transport recommendations
-        transport_cats = ['transport', 'fuel', 'commute']
-        transport_spending = last_month_expenses[last_month_expenses['category'].str.lower().isin(transport_cats)]['amount'].sum()
-        
-        if transport_spending > 8000:
-            recommendations.append(f"🚗 Transport Optimization: Rs. {transport_spending:.0f} on transport. Consider carpooling or public transport to save 30-40%.")
-    
-    # 3. Forecast-Based Recommendations
-    if forecast_total > 0 and last_3_months_avg_income > 0:
-        forecast_to_income_ratio = (forecast_total / last_3_months_avg_income) * 100
-        
-        if forecast_to_income_ratio > 90:
-            shortfall = forecast_total - (last_3_months_avg_income * 0.8)
-            recommendations.append(f"⚠️ Budget Alert: Next month's forecast is {forecast_to_income_ratio:.0f}% of income. Reduce discretionary spending by Rs. {shortfall:.0f}.")
-        elif forecast_to_income_ratio > 80:
-            recommendations.append(f"📊 Proactive Planning: Next month forecast is {forecast_to_income_ratio:.0f}% of income. Monitor daily spending to stay on track.")
-    
-    # 4. Spending Trend Recommendations
-    if last_month_expense_total > 0 and two_months_ago_expense_total > 0:
-        mom_change = ((last_month_expense_total - two_months_ago_expense_total) / two_months_ago_expense_total) * 100
-        
-        if mom_change > 15:
-            increase = last_month_expense_total - two_months_ago_expense_total
-            recommendations.append(f"📉 Spending Control: Expenses rose by {mom_change:.1f}% (Rs. {increase:.0f}). Review and categorize all expenses, set category-wise limits.")
-    
-    # 5. Emergency Fund Recommendations
-    if last_3_months_avg_expense > 0 and last_month_income_total > 0:
-        emergency_fund_target = last_3_months_avg_expense * 3
-        savings_rate = ((last_month_income_total - last_month_expense_total) / last_month_income_total) * 100 if last_month_income_total > 0 else 0
-        
-        if savings_rate > 0:
-            recommendations.append(f"🛡️ Financial Security: Build an emergency fund of Rs. {emergency_fund_target:.0f} (3 months expenses). Start with Rs. 3000/month.")
-    
-    # 6. Investment Recommendations
-    if last_month_income_total > 0 and last_month_expense_total > 0:
-        savings_amount = last_month_income_total - last_month_expense_total
-        savings_rate = (savings_amount / last_month_income_total) * 100
-        
-        if savings_rate >= 25 and savings_amount > 5000:
-            recommendations.append(f"💎 Wealth Building: You're saving Rs. {savings_amount:.0f}/month. Consider investing 50% in equity mutual funds (SIP), 30% in debt funds, 20% in emergency fund.")
-    
-    # 7. Small Transaction Optimization
-    if len(last_month_expenses) > 50:
-        small_transactions = last_month_expenses[last_month_expenses['amount'] < 500]
-        if len(small_transactions) > 20:
-            small_total = small_transactions['amount'].sum()
-            recommendations.append(f"💳 Micro-Spending Alert: {len(small_transactions)} small purchases totaling Rs. {small_total:.0f}. Set a Rs. 200 daily limit for small purchases.")
-    
-    # 8. Subscription Audit
-    subscription_cats = ['subscription', 'membership', 'streaming', 'software']
-    subscriptions = last_month_expenses[last_month_expenses['category'].str.lower().isin(subscription_cats)]
-    
-    if len(subscriptions) > 3:
-        sub_total = subscriptions['amount'].sum()
-        recommendations.append(f"📱 Subscription Audit: Review {len(subscriptions)} subscriptions (Rs. {sub_total:.0f}/month). Cancel unused services and switch to annual plans for 20-30% savings.")
-    
-    return insights, warnings, recommendations
+    return insights, warnings
 
 
 def generate_insights(df):
     """Legacy function - redirects to new AI insights"""
-    insights, warnings, recommendations = generate_ai_insights_and_warnings(df, {}, 0, {})
+    insights, warnings = generate_ai_insights_and_warnings(df, {}, 0, {})
     return insights, warnings
 
 
@@ -1631,8 +1532,7 @@ def api_forecast_get(userId: str):
                 "forecast_chart_data": {"next_month": "", "categories": {}},
                 "model_metrics": {"confidence": 0, "mae": 0, "rmse": 0, "r2": 0},
                 "insights": ["No historical data found. Please add some transactions to generate AI-powered forecasts."],
-                "warnings": ["Add your income and expense data to get personalized insights and predictions."],
-                "recommendations": ["Start tracking your daily expenses to get personalized financial recommendations."]
+                "warnings": ["Add your income and expense data to get personalized insights and predictions."]
             }
 
         # Use XGBoost forecasting
@@ -1647,9 +1547,9 @@ def api_forecast_get(userId: str):
             if amt > 100 and cat.lower() not in irregular_categories
         }
         
-        # Generate AI insights, warnings, and recommendations based on past month correlation
+        # Generate AI insights and warnings based on past month correlation
         # Pass the original forecast_data so insights can see irregular expenses
-        insights, warnings, recommendations = generate_ai_insights_and_warnings(df, forecast_data, confidence, metrics, next_month_label)
+        insights, warnings = generate_ai_insights_and_warnings(df, forecast_data, confidence, metrics, next_month_label)
 
         return {
             "forecast_chart_data": {
@@ -1664,8 +1564,7 @@ def api_forecast_get(userId: str):
                 "r2": round(metrics.get('r2', 0), 3)
             },
             "insights": insights,
-            "warnings": warnings,
-            "recommendations": recommendations
+            "warnings": warnings
         }
     except Exception as e:
         print(f"Error in api_forecast_get: {str(e)}")
@@ -1709,12 +1608,6 @@ def api_forecast_post(userId: str, body: UserEstimates):
             warnings = []
             if expense_sum > revenue_sum:
                 warnings.append(f"⚠️ Your estimated expenses (₹{int(expense_sum)}) exceed income (₹{int(revenue_sum)}). Review your budget!")
-            
-            recommendations = [
-                "📝 Start tracking all transactions for accurate forecasts",
-                "💰 Set up automatic expense tracking with bank notifications",
-                "🎯 Aim to save at least 20% of your income"
-            ]
 
             return {
                 "forecast_chart_data": {
@@ -1724,8 +1617,7 @@ def api_forecast_post(userId: str, body: UserEstimates):
                 },
                 "model_metrics": {"confidence": 0, "mae": 0, "rmse": 0, "r2": 0},
                 "insights": insights,
-                "warnings": warnings,
-                "recommendations": recommendations
+                "warnings": warnings
             }
 
         # Use XGBoost forecasting for next month
@@ -1741,7 +1633,7 @@ def api_forecast_post(userId: str, body: UserEstimates):
         }
         
         # Pass the original forecast_data so insights can see irregular expenses for notes
-        insights, warnings, recommendations = generate_ai_insights_and_warnings(df, forecast_data, confidence, metrics, next_month_label)
+        insights, warnings = generate_ai_insights_and_warnings(df, forecast_data, confidence, metrics, next_month_label)
 
         return {
             "forecast_chart_data": {
@@ -1756,8 +1648,7 @@ def api_forecast_post(userId: str, body: UserEstimates):
                 "r2": round(metrics.get('r2', 0), 3)
             },
             "insights": insights,
-            "warnings": warnings,
-            "recommendations": recommendations
+            "warnings": warnings
         }
     except Exception as e:
         print(f"Error in api_forecast_post: {str(e)}")
