@@ -29,6 +29,7 @@ const Analysis = () => {
   const fetchInsights = useCallback(async () => {
     if (!user?._id) {
       setError("User not authenticated");
+      setLoading(false);
       return;
     }
     
@@ -88,35 +89,22 @@ const Analysis = () => {
   }, [fetchInsights]);
   
 
-  // Helpers for charts
-  // Normalize category keys: trim and lowercase
-  const normalizeKey = (key) => key.trim().toLowerCase();
+  // Helpers for charts - Updated for monthly predictions
   const buildForecastBars = (forecast) => {
-    const { labels = [], categories = {} } = forecast || {};
-    // Build a normalized categories object
-    const normalizedCategories = {};
-    Object.entries(categories).forEach(([cat, vals]) => {
-      const norm = normalizeKey(cat);
-      if (!normalizedCategories[norm]) {
-        normalizedCategories[norm] = vals;
-      } else {
-        // If duplicate, sum the values
-        normalizedCategories[norm] = normalizedCategories[norm].map((v, i) => (v || 0) + (vals[i] || 0));
-      }
+    const { next_month = "", categories = {} } = forecast || {};
+    if (!next_month || !Object.keys(categories).length) return [];
+    
+    // Single month data point with all categories
+    const row = { month: next_month };
+    Object.entries(categories).forEach(([cat, amt]) => {
+      row[cat] = amt || 0;
     });
-    return labels.map((label, idx) => {
-      const row = { month: label };
-      Object.entries(normalizedCategories).forEach(([cat, vals]) => {
-        row[cat] = Array.isArray(vals) ? vals[idx] ?? 0 : 0;
-      });
-      return row;
-    });
+    return [row]; // Return single month prediction
   };
+  
   const categoryKeys = (forecast) => {
     if (!forecast?.categories) return [];
-    const keys = Object.keys(forecast.categories).map(normalizeKey);
-    // Remove duplicates
-    return Array.from(new Set(keys));
+    return Object.keys(forecast.categories);
   };
 
   const noHistorical =
@@ -126,8 +114,6 @@ const Analysis = () => {
 
   const forecastData = data ? buildForecastBars(data.forecast_chart_data) : [];
   const keys = data ? categoryKeys(data.forecast_chart_data) : [];
-  const cashflow = data?.cashflow_chart_data || {};
-  const cashflowPoints = (cashflow.labels || []).map((l, i) => ({ month: l, value: cashflow.values?.[i] ?? 0 }));
 
   return (
     <DashboardLayout activeMenu="Analysis">
@@ -136,7 +122,7 @@ const Analysis = () => {
         <div className="mb-8 flex items-center justify-between bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Financial Analysis</h1>
-            <p className="text-gray-600">AI-powered forecasts, cashflow predictions and personalized insights</p>
+            <p className="text-gray-600">AI-powered expense forecasts and personalized insights</p>
           </div>
           <button
             onClick={fetchInsights}
@@ -220,7 +206,7 @@ const Analysis = () => {
                       />
                     </div>
                     <div className="md:col-span-5">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Amount (₹)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Amount (Rs.)</label>
                       <input
                         className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                         placeholder="e.g., 12000"
@@ -267,18 +253,27 @@ const Analysis = () => {
 
         {/* Charts Section */}
         {!loading && data && (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+          <div className="mb-8">
             {/* Expense Forecast Chart */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Expense Forecast</h3>
-                  <p className="text-sm text-gray-600">Predicted spending for next 3 months</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Next Month Forecast</h3>
+                  <p className="text-sm text-gray-600">{data?.forecast_chart_data?.next_month ? `Predicted spending for ${data.forecast_chart_data.next_month}` : 'AI-powered expense prediction'}</p>
                 </div>
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                  </svg>
+                <div className="flex items-center gap-4">
+                  {data?.forecast_chart_data?.total && (
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500 font-medium">Total Predicted</p>
+                      <p className="text-xl font-bold text-blue-600">Rs.{data.forecast_chart_data.total.toLocaleString('en-IN')}</p>
+                    </div>
+                  )}
+
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2-2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                  </div>
                 </div>
               </div>
               {forecastData.length ? (
@@ -321,53 +316,12 @@ const Analysis = () => {
                 </div>
               )}
             </div>
-
-            {/* Cashflow Chart */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Net Cashflow</h3>
-                  <p className="text-sm text-gray-600">Income minus expenses trend</p>
-                </div>
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                  </svg>
-                </div>
-              </div>
-              <div style={{ width: "100%", height: 350 }}>
-                <ResponsiveContainer>
-                  <LineChart data={cashflowPoints} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid #e5e7eb', 
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                      }}
-                      formatter={(value) => [`₹${value?.toLocaleString()}`, 'Net Cashflow']}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="value" 
-                      stroke="#8b5cf6" 
-                      strokeWidth={3} 
-                      dot={{ r: 5, fill: '#8b5cf6' }}
-                      activeDot={{ r: 7, fill: '#7c3aed' }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* Insights and Warnings Section */}
+        {/* Insights, Warnings, and Recommendations Section */}
         {!loading && data && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Insights */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <div className="flex items-center mb-6">
@@ -377,8 +331,20 @@ const Analysis = () => {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Smart Insights</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Financial Insights</h3>
                   <p className="text-sm text-gray-600">AI-generated recommendations</p>
+                </div>
+              </div>
+              
+              {/* Data Quality Message */}
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start">
+                  <svg className="h-4 w-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    <strong>Note:</strong> Predictions and confidence scores improve with more consistent tracking and historical data. Keep adding transactions regularly for better insights!
+                  </p>
                 </div>
               </div>
               
@@ -442,6 +408,46 @@ const Analysis = () => {
                   </div>
                   <p className="text-gray-600 font-medium">All Good!</p>
                   <p className="text-sm text-gray-400 mt-1">No warnings at this time.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Recommendations */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center mb-6">
+                <div className="p-2 bg-purple-100 rounded-lg mr-4">
+                  <svg className="h-5 w-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Action Plan</h3>
+                  <p className="text-sm text-gray-600">Personalized recommendations</p>
+                </div>
+              </div>
+              
+              {data.recommendations?.length ? (
+                <div className="space-y-4">
+                  {data.recommendations.map((rec, idx) => (
+                    <div key={idx} className="flex items-start p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <svg className="h-4 w-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                      </div>
+                      <p className="ml-3 text-sm text-purple-800 leading-relaxed">{rec}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                    <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                  </div>
+                  <p className="text-gray-500">No recommendations available</p>
+                  <p className="text-sm text-gray-400 mt-1">Track expenses to get personalized action items</p>
                 </div>
               )}
             </div>
